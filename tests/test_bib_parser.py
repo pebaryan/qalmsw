@@ -47,3 +47,29 @@ def test_line_comment_entries_are_stripped():
 def test_entry_type_is_lowercased():
     entries = _parse("@ARTICLE{k, title={T}}\n")
     assert entries[0].entry_type == "article"
+
+
+def test_title_and_author_are_extracted():
+    text = (
+        "@article{vaswani2017,\n"
+        "  title = {Attention Is All You Need},\n"
+        "  author = {Vaswani, Ashish and Shazeer, Noam},\n"
+        "  year = {2017},\n"
+        "}\n"
+    )
+    entries = _parse(text)
+    assert entries[0].title == "Attention Is All You Need"
+    assert entries[0].author == "Vaswani, Ashish and Shazeer, Noam"
+
+
+def test_missing_fields_yield_empty_strings():
+    entries = _parse("@article{bare2020,}\n")
+    assert entries[0].key == "bare2020"
+    assert entries[0].title == ""
+    assert entries[0].author == ""
+
+
+def test_title_braces_are_stripped():
+    text = "@article{k, title = {{A Study on {LLMs}}}}\n"
+    entries = _parse(text)
+    assert entries[0].title == "A Study on LLMs"
