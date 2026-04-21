@@ -19,10 +19,11 @@ def render_findings(console: Console, file: Path, findings: list[Finding]) -> No
         console.print(f"[green]{file}[/]: no issues found")
         return
 
-    for f in sorted(findings, key=lambda f: (f.line, f.checker)):
+    for f in sorted(findings, key=lambda f: (f.file or "", f.line, f.checker)):
         style = _SEVERITY_STYLE[f.severity]
+        loc = f"{f.file or file}:{f.line}"
         console.print(
-            f"[{style}]{f.severity.value}[/] [dim]{file}:{f.line}[/] "
+            f"[{style}]{f.severity.value}[/] [dim]{loc}[/] "
             f"[cyan]{f.checker}[/] {f.message}"
         )
         if f.excerpt:

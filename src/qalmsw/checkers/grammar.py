@@ -7,8 +7,9 @@ LLM to count lines itself is unreliable for small local models, so we don't.
 from __future__ import annotations
 
 from qalmsw.checkers.base import Finding, Severity
+from qalmsw.document import Document
 from qalmsw.llm import LLMClient
-from qalmsw.parse import Paragraph
+from qalmsw.parse import Paragraph, has_prose
 
 _SYSTEM_PROMPT = """You are a grammar and style checker for scientific LaTeX writing.
 
@@ -39,9 +40,11 @@ class GrammarChecker:
     def __init__(self, llm: LLMClient) -> None:
         self._llm = llm
 
-    def check(self, paragraphs: list[Paragraph]) -> list[Finding]:
+    def check(self, doc: Document) -> list[Finding]:
         findings: list[Finding] = []
-        for para in paragraphs:
+        for para in doc.paragraphs:
+            if not has_prose(para.text):
+                continue
             result = self._llm.complete_json(_SYSTEM_PROMPT, para.text)
             for raw in result.get("issues", []):
                 findings.append(_to_finding(raw, para, self.name))

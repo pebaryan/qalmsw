@@ -10,7 +10,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
-from qalmsw.parse import Paragraph
+from qalmsw.document import Document
 
 
 class Severity(str, Enum):
@@ -26,9 +26,13 @@ class Finding(BaseModel):
     message: str
     suggestion: str | None = None
     excerpt: str | None = Field(default=None, description="Short source snippet this refers to")
+    file: str | None = Field(
+        default=None,
+        description="Source file if different from the document being checked (e.g. a .bib)",
+    )
 
 
 class Checker(Protocol):
     name: str
 
-    def check(self, paragraphs: list[Paragraph]) -> list[Finding]: ...
+    def check(self, doc: Document) -> list[Finding]: ...
