@@ -4,7 +4,7 @@ Automated QA for scientific LaTeX writing, powered by a local LLM (llama.cpp ser
 
 ## Status
 
-Grammar, citation, and reviewer checkers work end-to-end. Claim-to-reference is planned.
+Grammar, citation, reviewer, and claims checkers work end-to-end. Claims is opt-in via `--enable-claims` because Google Scholar lookups are slow and subject to CAPTCHAs.
 
 ## Quick start
 
@@ -33,6 +33,6 @@ Environment variables:
 - `grammar` — per-paragraph grammar/style pass (LLM-backed)
 - `citations` — `.bib` vs `\cite` cross-check: MISSING keys, UNUSED entries, DUPLICATE keys
 - `reviewer` — one LLM critique per `\section{}`, focused on motivation / clarity / argumentation / methodology / evaluation / structure
-- `claims` *(planned)* — claim-to-reference consistency via retrieval
+- `claims` *(opt-in: `--enable-claims`)* — for each `\cite`-backed claim, looks the cited paper up on Google Scholar and asks the LLM whether the abstract supports the claim
 
 Exit code is `1` only when an `error`-severity finding is present (missing citation, grammar error), so drafts with unused-bib-entry `info`s or duplicate-key `warning`s don't fail CI.

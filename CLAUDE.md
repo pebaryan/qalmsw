@@ -58,7 +58,7 @@ report.render_findings         # rich-formatted terminal output
 | `grammar`  | working    | Per-paragraph LLM call, parallelizable, cheap               |
 | `citations`| working    | Deterministic `.bib` vs `\cite` cross-check (MISSING / UNUSED / DUPLICATE). No LLM. |
 | `reviewer` | working    | One LLM call per `\section{}` (or whole body if none); over-long sections are truncated |
-| `claims`   | **planned**| Retrieval layer scaffolded (Google Scholar via `scholarly`); LLM judge + checker wiring still to do |
+| `claims`   | working, opt-in | Two LLM calls per paragraph-with-citation (extract, then judge per (claim, cite)). Scholar abstracts cached per bib key within a run. Opt in with `--enable-claims` — slow and rate-limited. |
 
 When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `checkers/__init__.py`, wire it into `cli.py`'s `checkers` list, and add tests with a `FakeLLM` — don't hit the real server from tests.
 
