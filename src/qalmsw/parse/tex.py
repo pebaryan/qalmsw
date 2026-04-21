@@ -2,12 +2,18 @@
 
 The contract other modules rely on: `parse_paragraphs` returns `Paragraph` objects whose
 `start_line`/`end_line` are 1-indexed against the *original* file, so Findings can point
-back at the real source location.
+back at the real source location. When a ``line_map`` is provided (from
+``resolve_includes``), each paragraph's ``file`` and line numbers are translated to the
+file the content actually came from — so a finding inside ``sections/intro.tex`` renders
+with that path, not the top-level ``main.tex``.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
+
+from qalmsw.parse.includes import LineMapEntry
 
 _COMMENT_RE = re.compile(r"(?<!\\)%.*")
 _BEGIN_DOC_RE = re.compile(r"\\begin\{document\}")
@@ -22,6 +28,7 @@ class Paragraph:
     text: str
     start_line: int
     end_line: int
+    file: Path | None = None
 
 
 def _strip_comments(source: str) -> str:
@@ -51,8 +58,21 @@ def extract_body(source: str) -> tuple[str, int]:
     return source[offset:end_offset], start_line
 
 
-def parse_paragraphs(source: str) -> list[Paragraph]:
-    """Split the document body into blank-line-separated paragraphs."""
+def parse_paragraphs(
+    source: str,
+    *,
+    line_map: list[LineMapEntry] | None = None,
+    default_file: Path | None = None,
+) -> list[Paragraph]:
+    """Split the document body into blank-line-separated paragraphs.
+
+    If ``line_map`` is provided (as produced by ``resolve_includes``), each paragraph
+    is tagged with the file it originated from and its line numbers are translated
+    into that file's numbering. Paragraphs are attributed to the file their first
+    line belongs to; if a paragraph straddles an ``\\input{}`` boundary, the tail
+    lines' original file is discarded (rare in practice; ``\\input{}`` usually sits
+    on its own line, producing a paragraph break).
+    """
     body, body_start_line = extract_body(source)
     stripped = _strip_comments(body)
     lines = stripped.splitlines()
@@ -61,12 +81,25 @@ def parse_paragraphs(source: str) -> list[Paragraph]:
     buf: list[str] = []
     buf_start: int | None = None
 
+    def _origin(combined_line: int) -> tuple[Path | None, int]:
+        if line_map is None:
+            return default_file, combined_line
+        idx = combined_line - 1
+        if 0 <= idx < len(line_map):
+            entry = line_map[idx]
+            return entry.file, entry.line
+        return default_file, combined_line
+
     def flush(end_line: int) -> None:
         if not buf:
             return
         text = "\n".join(buf).strip()
         if text:
-            paragraphs.append(Paragraph(text=text, start_line=buf_start, end_line=end_line))
+            file, start = _origin(buf_start)
+            _, end = _origin(end_line)
+            paragraphs.append(
+                Paragraph(text=text, start_line=start, end_line=end, file=file)
+            )
         buf.clear()
 
     for i, line in enumerate(lines):

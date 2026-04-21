@@ -70,6 +70,7 @@ def _to_finding(raw: dict, para: Paragraph, checker: str) -> Finding:
         message=raw.get("message", "").strip(),
         suggestion=(raw.get("suggestion") or None),
         excerpt=excerpt or None,
+        file=str(para.file) if para.file else None,
     )
 
 

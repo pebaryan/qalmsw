@@ -56,7 +56,11 @@ class ReviewerChecker:
         self._concurrency = concurrency
 
     def check(self, doc: Document) -> list[Finding]:
-        sections = [s for s in parse_sections(doc.source) if s.text.strip()]
+        sections = [
+            s
+            for s in parse_sections(doc.source, line_map=doc.line_map, default_file=doc.path)
+            if s.text.strip()
+        ]
         results = ordered_parallel_map(
             lambda s: self._llm.complete_json(_SYSTEM_PROMPT, self._render_user_prompt(s)),
             sections,
@@ -92,4 +96,5 @@ def _to_finding(raw: dict, section: Section, checker: str) -> Finding:
         line=section.start_line,
         message=prefix + body,
         suggestion=(raw.get("suggestion") or None),
+        file=str(section.file) if section.file else None,
     )

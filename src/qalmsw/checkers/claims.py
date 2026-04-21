@@ -169,4 +169,10 @@ class ClaimsChecker:
 
 
 def _finding(para: Paragraph, severity: Severity, message: str) -> Finding:
-    return Finding(checker="claims", severity=severity, line=para.start_line, message=message)
+    return Finding(
+        checker="claims",
+        severity=severity,
+        line=para.start_line,
+        message=message,
+        file=str(para.file) if para.file else None,
+    )

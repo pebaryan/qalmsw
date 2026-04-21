@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from qalmsw import __version__
-from qalmsw.bib import BibEntry, parse_bib_file
+from qalmsw.bib import BibEntry, extract_inline_bibitems, parse_bib_file
 from qalmsw.checkers import (
     Checker,
     CitationChecker,
@@ -66,6 +66,18 @@ def check(
     bib_entries = _load_bib_entries(bib_paths)
     if bib_paths:
         console.print(f"[dim]{len(bib_entries)} bib entries from {len(bib_paths)} file(s)[/]")
+    if not bib_entries:
+        inline = extract_inline_bibitems(
+            doc.source, line_map=doc.line_map, default_file=doc.path
+        )
+        if inline:
+            bib_entries = inline
+            console.print(f"[dim]{len(inline)} bib entries from inline \\begin{{thebibliography}}[/]")
+        else:
+            console.print(
+                "[yellow]warning[/]: no bib entries found (no --bib, no \\bibliography{}, "
+                "no inline \\begin{thebibliography}); citation checks will be limited."
+            )
 
     checkers: list[Checker] = [CitationChecker(bib_entries)]
     if not skip_grammar or not skip_reviewer or enable_claims:
