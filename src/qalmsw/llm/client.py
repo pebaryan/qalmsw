@@ -52,10 +52,15 @@ class LlamaCppClient:
         base_url: str | None = None,
         model: str | None = None,
         temperature: float = 0.2,
+        timeout: float = 1200.0,
     ) -> None:
+        # max_retries=0 because a slow local model that times out once is unlikely to
+        # succeed on a silent retry; failing fast surfaces the real state to the user.
         self._client = OpenAI(
             base_url=base_url or os.environ.get("QALMSW_BASE_URL", "http://localhost:8080/v1"),
             api_key="not-needed",
+            timeout=timeout,
+            max_retries=0,
         )
         self._model = model or os.environ.get("QALMSW_MODEL", "local-model")
         self._temperature = temperature

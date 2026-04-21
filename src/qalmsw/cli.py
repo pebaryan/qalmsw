@@ -9,7 +9,7 @@ from rich.console import Console
 from qalmsw import __version__
 from qalmsw.checkers import Finding, GrammarChecker
 from qalmsw.llm import LlamaCppClient
-from qalmsw.parse import parse_paragraphs
+from qalmsw.parse import has_prose, parse_paragraphs
 from qalmsw.report import render_findings
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -30,7 +30,8 @@ def check(
 ) -> None:
     """Run QA checks on a LaTeX document."""
     source = file.read_text(encoding="utf-8")
-    paragraphs = parse_paragraphs(source)
+    paragraphs = [p for p in parse_paragraphs(source) if has_prose(p.text)]
+    console.print(f"[dim]{len(paragraphs)} prose paragraph(s) to check[/]")
 
     llm = LlamaCppClient(base_url=base_url, model=model)
     checkers = [GrammarChecker(llm)]

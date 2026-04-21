@@ -12,6 +12,8 @@ from dataclasses import dataclass
 _COMMENT_RE = re.compile(r"(?<!\\)%.*")
 _BEGIN_DOC_RE = re.compile(r"\\begin\{document\}")
 _END_DOC_RE = re.compile(r"\\end\{document\}")
+_LATEX_CMD_RE = re.compile(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^}]*\})?")
+_WORD_RE = re.compile(r"[A-Za-z]{3,}")
 
 
 @dataclass(frozen=True)
@@ -75,3 +77,12 @@ def parse_paragraphs(source: str) -> list[Paragraph]:
         flush(end_line=body_start_line + len(lines) - 1)
 
     return paragraphs
+
+
+def has_prose(text: str, min_words: int = 3) -> bool:
+    """True if `text` contains at least `min_words` word-like tokens after stripping
+    simple LaTeX commands. Used to skip paragraphs that are entirely structural
+    (`\\maketitle`, `\\section{X}`, etc.) and not worth an LLM call.
+    """
+    cleaned = _LATEX_CMD_RE.sub(" ", text)
+    return len(_WORD_RE.findall(cleaned)) >= min_words

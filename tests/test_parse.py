@@ -1,4 +1,4 @@
-from qalmsw.parse import parse_paragraphs
+from qalmsw.parse import has_prose, parse_paragraphs
 
 
 def test_simple_paragraphs():
@@ -53,3 +53,17 @@ def test_content_after_preamble_tracks_lines():
     paras = parse_paragraphs(source)
     assert len(paras) == 1
     assert paras[0].start_line == 4
+
+
+def test_has_prose_rejects_bare_commands():
+    assert not has_prose("\\maketitle")
+    assert not has_prose("\\section{Introduction}")
+    assert not has_prose("\\begin{equation}\\end{equation}")
+
+
+def test_has_prose_accepts_real_sentences():
+    assert has_prose("This paper investigates attention mechanisms.")
+
+
+def test_has_prose_accepts_prose_with_latex_commands():
+    assert has_prose("Recent work~\\cite{foo} shows that self-attention scales well.")
