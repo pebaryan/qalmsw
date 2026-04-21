@@ -8,7 +8,7 @@ from rich.console import Console
 
 from qalmsw import __version__
 from qalmsw.bib import BibEntry, parse_bib_file
-from qalmsw.checkers import Checker, CitationChecker, Finding, GrammarChecker
+from qalmsw.checkers import Checker, CitationChecker, Finding, GrammarChecker, ReviewerChecker
 from qalmsw.document import Document
 from qalmsw.llm import LlamaCppClient
 from qalmsw.parse import scan_bib_resources
@@ -34,6 +34,7 @@ def check(
         "\\bibliography{} / \\addbibresource{} declarations.",
     ),
     skip_grammar: bool = typer.Option(False, "--skip-grammar", help="Skip LLM grammar checker"),
+    skip_reviewer: bool = typer.Option(False, "--skip-reviewer", help="Skip LLM reviewer checker"),
     base_url: str | None = typer.Option(None, "--base-url", envvar="QALMSW_BASE_URL"),
     model: str | None = typer.Option(None, "--model", envvar="QALMSW_MODEL"),
 ) -> None:
@@ -47,8 +48,12 @@ def check(
         console.print(f"[dim]{len(bib_entries)} bib entries from {len(bib_paths)} file(s)[/]")
 
     checkers: list[Checker] = [CitationChecker(bib_entries)]
-    if not skip_grammar:
-        checkers.append(GrammarChecker(LlamaCppClient(base_url=base_url, model=model)))
+    if not skip_grammar or not skip_reviewer:
+        llm = LlamaCppClient(base_url=base_url, model=model)
+        if not skip_grammar:
+            checkers.append(GrammarChecker(llm))
+        if not skip_reviewer:
+            checkers.append(ReviewerChecker(llm))
 
     findings: list[Finding] = []
     for c in checkers:
