@@ -67,3 +67,19 @@ def test_has_prose_accepts_real_sentences():
 
 def test_has_prose_accepts_prose_with_latex_commands():
     assert has_prose("Recent work~\\cite{foo} shows that self-attention scales well.")
+
+
+def test_inline_thebibliography_is_excluded_from_body():
+    source = (
+        "\\begin{document}\n"
+        "Real body content with enough words here.\n"
+        "\n"
+        "\\begin{thebibliography}{99}\n"
+        "\\bibitem{foo} A. Author, Title, Venue, 2020.\n"
+        "\\end{thebibliography}\n"
+        "\\end{document}\n"
+    )
+    paras = parse_paragraphs(source)
+    assert len(paras) == 1
+    assert "bibitem" not in paras[0].text
+    assert "thebibliography" not in paras[0].text

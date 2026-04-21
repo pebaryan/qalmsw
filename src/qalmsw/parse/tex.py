@@ -12,6 +12,7 @@ from dataclasses import dataclass
 _COMMENT_RE = re.compile(r"(?<!\\)%.*")
 _BEGIN_DOC_RE = re.compile(r"\\begin\{document\}")
 _END_DOC_RE = re.compile(r"\\end\{document\}")
+_THEBIB_RE = re.compile(r"\\begin\{thebibliography\}")
 _LATEX_CMD_RE = re.compile(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^}]*\})?")
 _WORD_RE = re.compile(r"[A-Za-z]{3,}")
 
@@ -41,6 +42,11 @@ def extract_body(source: str) -> tuple[str, int]:
         offset += 1
     end = _END_DOC_RE.search(source, offset)
     end_offset = end.start() if end else len(source)
+    # Papers using inline \begin{thebibliography} embed ~hundreds of \bibitem entries in
+    # the body. That's reference metadata, not prose the grammar/reviewer should see.
+    bib = _THEBIB_RE.search(source, offset, end_offset)
+    if bib:
+        end_offset = bib.start()
     start_line = source.count("\n", 0, offset) + 1
     return source[offset:end_offset], start_line
 
