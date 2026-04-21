@@ -58,7 +58,7 @@ report.render_findings         # rich-formatted terminal output
 | `grammar`  | working    | Per-paragraph LLM call, parallelizable, cheap               |
 | `citations`| working    | Deterministic `.bib` vs `\cite` cross-check (MISSING / UNUSED / DUPLICATE). No LLM. |
 | `reviewer` | working    | One LLM call per `\section{}` (or whole body if none); over-long sections are truncated |
-| `claims`   | **planned**| Needs retrieval (arXiv / local PDF cache / S2) + LLM judge — most expensive |
+| `claims`   | **planned**| Retrieval layer scaffolded (Google Scholar via `scholarly`); LLM judge + checker wiring still to do |
 
 When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `checkers/__init__.py`, wire it into `cli.py`'s `checkers` list, and add tests with a `FakeLLM` — don't hit the real server from tests.
 
@@ -72,5 +72,5 @@ When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `
 
 - No multi-file `\input{}` / `\include{}` resolution yet — single-file only.
 - No LLM-assisted citation verification (does this citation actually support this claim?). That's the `claims` checker's territory.
-- No retrieval layer yet — will live in `src/qalmsw/retrieval/` when the claims checker lands.
+- Retrieval starts with `src/qalmsw/retrieval/scholar.py` (Google Scholar via `scholarly`). **Scraping-based**; rate-limits and CAPTCHAs are expected under sustained use. Keep it for personal/interactive runs; fall back to Semantic Scholar or arXiv when CI-scale reliability matters.
 - No SARIF/JSON report formats yet — only `report/text.py`. The `Finding` pydantic model is the serialization seam when those arrive.

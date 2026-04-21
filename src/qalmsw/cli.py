@@ -13,6 +13,7 @@ from qalmsw.document import Document
 from qalmsw.llm import LlamaCppClient
 from qalmsw.parse import scan_bib_resources
 from qalmsw.report import render_findings
+from qalmsw.retrieval import search_by_title
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -68,6 +69,26 @@ def check(
 
     render_findings(console, file, findings)
     raise typer.Exit(code=1 if any(f.severity.value == "error" for f in findings) else 0)
+
+
+@app.command()
+def scholar(
+    query: list[str] = typer.Argument(..., help="Title query (may be unquoted)"),
+) -> None:
+    """Look up the first Google Scholar match for a title query.
+
+    Scraping-based; expect CAPTCHAs under sustained use.
+    """
+    text = " ".join(query)
+    result = search_by_title(text)
+    if result is None:
+        console.print(f"[yellow]no match for:[/] {text}")
+        raise typer.Exit(code=1)
+    console.print(f"[bold]title:[/]    {result.title}")
+    console.print(f"[bold]authors:[/]  {', '.join(result.authors) or '(unknown)'}")
+    console.print(f"[bold]year:[/]     {result.year if result.year is not None else '(unknown)'}")
+    console.print(f"[bold]url:[/]      {result.url or '(none)'}")
+    console.print(f"[bold]abstract:[/] {result.abstract or '(no abstract)'}")
 
 
 def _discover_bib_files(doc: Document) -> list[Path]:

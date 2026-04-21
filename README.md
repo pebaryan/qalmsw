@@ -19,6 +19,8 @@ qalmsw check --skip-grammar --skip-reviewer paper.tex      # deterministic citat
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations, no per-paragraph grammar
 qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls (match server --parallel N)
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
+
+qalmsw scholar "Attention Is All You Need"                 # Google Scholar lookup (scraping; expect CAPTCHAs on bulk use)
 ```
 
 Environment variables:
