@@ -10,6 +10,7 @@ the prompt and response budget are accounted for. Raise it if your server allows
 """
 from __future__ import annotations
 
+from qalmsw._concurrency import ordered_parallel_map
 from qalmsw.checkers.base import Finding, Severity
 from qalmsw.document import Document
 from qalmsw.llm import LLMClient
@@ -44,17 +45,25 @@ _TRUNCATION_NOTE = "\n\n[... section truncated for length ...]"
 class ReviewerChecker:
     name = "reviewer"
 
-    def __init__(self, llm: LLMClient, max_chars: int = _DEFAULT_MAX_CHARS) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        max_chars: int = _DEFAULT_MAX_CHARS,
+        concurrency: int = 1,
+    ) -> None:
         self._llm = llm
         self._max_chars = max_chars
+        self._concurrency = concurrency
 
     def check(self, doc: Document) -> list[Finding]:
+        sections = [s for s in parse_sections(doc.source) if s.text.strip()]
+        results = ordered_parallel_map(
+            lambda s: self._llm.complete_json(_SYSTEM_PROMPT, self._render_user_prompt(s)),
+            sections,
+            self._concurrency,
+        )
         findings: list[Finding] = []
-        for section in parse_sections(doc.source):
-            if not section.text.strip():
-                continue
-            user = self._render_user_prompt(section)
-            result = self._llm.complete_json(_SYSTEM_PROMPT, user)
+        for section, result in zip(sections, results, strict=True):
             for raw in result.get("comments", []):
                 findings.append(_to_finding(raw, section, self.name))
         return findings

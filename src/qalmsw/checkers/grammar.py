@@ -6,6 +6,7 @@ LLM to count lines itself is unreliable for small local models, so we don't.
 """
 from __future__ import annotations
 
+from qalmsw._concurrency import ordered_parallel_map
 from qalmsw.checkers.base import Finding, Severity
 from qalmsw.document import Document
 from qalmsw.llm import LLMClient
@@ -37,15 +38,19 @@ If there are no issues, return {"issues": []}.
 class GrammarChecker:
     name = "grammar"
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: LLMClient, concurrency: int = 1) -> None:
         self._llm = llm
+        self._concurrency = concurrency
 
     def check(self, doc: Document) -> list[Finding]:
+        prose_paras = [p for p in doc.paragraphs if has_prose(p.text)]
+        results = ordered_parallel_map(
+            lambda p: self._llm.complete_json(_SYSTEM_PROMPT, p.text),
+            prose_paras,
+            self._concurrency,
+        )
         findings: list[Finding] = []
-        for para in doc.paragraphs:
-            if not has_prose(para.text):
-                continue
-            result = self._llm.complete_json(_SYSTEM_PROMPT, para.text)
+        for para, result in zip(prose_paras, results, strict=True):
             for raw in result.get("issues", []):
                 findings.append(_to_finding(raw, para, self.name))
         return findings

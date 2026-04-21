@@ -35,6 +35,13 @@ def check(
     ),
     skip_grammar: bool = typer.Option(False, "--skip-grammar", help="Skip LLM grammar checker"),
     skip_reviewer: bool = typer.Option(False, "--skip-reviewer", help="Skip LLM reviewer checker"),
+    concurrency: int = typer.Option(
+        1,
+        "--concurrency",
+        "-j",
+        min=1,
+        help="Number of parallel LLM requests. Match your llama.cpp server's --parallel N.",
+    ),
     base_url: str | None = typer.Option(None, "--base-url", envvar="QALMSW_BASE_URL"),
     model: str | None = typer.Option(None, "--model", envvar="QALMSW_MODEL"),
 ) -> None:
@@ -51,9 +58,9 @@ def check(
     if not skip_grammar or not skip_reviewer:
         llm = LlamaCppClient(base_url=base_url, model=model)
         if not skip_grammar:
-            checkers.append(GrammarChecker(llm))
+            checkers.append(GrammarChecker(llm, concurrency=concurrency))
         if not skip_reviewer:
-            checkers.append(ReviewerChecker(llm))
+            checkers.append(ReviewerChecker(llm, concurrency=concurrency))
 
     findings: list[Finding] = []
     for c in checkers:

@@ -17,6 +17,7 @@ pip install -e '.[dev]'
 qalmsw check path/to/paper.tex                             # run all checkers
 qalmsw check --skip-grammar --skip-reviewer paper.tex      # deterministic citation checks only
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations, no per-paragraph grammar
+qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls (match server --parallel N)
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
 ```
 

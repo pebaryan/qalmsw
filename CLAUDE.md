@@ -48,6 +48,7 @@ report.render_findings         # rich-formatted terminal output
 - **Checkers never ask the LLM for line numbers.** Small local models count lines unreliably. Instead they ask for an `excerpt` string and we locate it in the paragraph text (`grammar._locate_line`). New checkers should follow this pattern.
 - **Structured output uses `response_format={"type": "json_object"}`** — supported by llama.cpp server. The system prompt must also spell out the JSON shape, because small models otherwise drift.
 - **`LLMClient` has `max_retries=0`.** A slow local model that times out once rarely succeeds silently; failing fast surfaces the real state instead of a 30-minute silent retry loop.
+- **LLM fan-out goes through `ordered_parallel_map` (`src/qalmsw/_concurrency.py`).** Grammar and reviewer both take a `concurrency` ctor arg; the CLI exposes `--concurrency/-j`. Default is 1 (matches llama.cpp's default `--parallel 1`). Users bump both server and CLI together. Results are order-preserving so reports stay stable.
 - **`.bib` parsing is regex-based**, not a full BibTeX parser. We extract `@type{key,` headers + line numbers because that's all MISSING / UNUSED / DUPLICATE needs. If we ever need field values, swap in `bibtexparser`; don't grow the regex.
 
 ### Checker status
