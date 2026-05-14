@@ -53,12 +53,16 @@ report.render_findings         # rich-formatted terminal output
 
 ### Checker status
 
-| Checker    | State      | Shape                                                       |
-|------------|------------|-------------------------------------------------------------|
-| `grammar`  | working    | Per-paragraph LLM call, parallelizable, cheap               |
-| `citations`| working    | Deterministic `.bib` vs `\cite` cross-check (MISSING / UNUSED / DUPLICATE). No LLM. |
-| `reviewer` | working    | One LLM call per `\section{}` (or whole body if none); over-long sections are truncated |
-| `claims`   | working, opt-in | Two LLM calls per paragraph-with-citation (extract, then judge per (claim, cite)). Scholar abstracts cached per bib key within a run. Opt in with `--enable-claims` — slow and rate-limited. |
+| Checker      | State      | Shape                                                       |
+|--------------|------------|-------------------------------------------------------------|
+| `artifacts`  | working    | Deterministic regex scan for LLM meta-comments, placeholders, self-awareness, phantom refs. No LLM. Always runs. |
+| `figures`    | working    | Deterministic scan for missing/placeholder captions, orphan labels, empty floats. No LLM. Always runs. |
+| `images`     | working    | Verifies `\\includegraphics` files exist on disk relative to the .tex file. No LLM. Always runs. |
+| `grammar`    | working    | Per-paragraph LLM call, parallelizable, cheap               |
+| `citations`  | working    | Deterministic `.bib` vs `\\cite` cross-check (MISSING / UNUSED / DUPLICATE). No LLM. |
+| `references` | working    | Verifies arXiv eprint IDs and DOIs resolve to real papers via live API calls. Network-backed. |
+| `reviewer`   | working    | One LLM call per `\\section{}` (or whole body if none); over-long sections are truncated |
+| `claims`     | working, opt-in | Two LLM calls per paragraph-with-citation (extract, then judge per (claim, cite)). Paper abstracts fetched via retrieval backend, cached per bib key within a run. Opt in with `--enable-claims`. Retrieval backend selectable with `--retrieval` (default: `semantic-scholar`, alt: `google-scholar`). |
 
 When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `checkers/__init__.py`, wire it into `cli.py`'s `checkers` list, and add tests with a `FakeLLM` — don't hit the real server from tests.
 
@@ -72,5 +76,5 @@ When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `
 
 - No multi-file `\input{}` / `\include{}` resolution yet — single-file only.
 - No LLM-assisted citation verification (does this citation actually support this claim?). That's the `claims` checker's territory.
-- Retrieval starts with `src/qalmsw/retrieval/scholar.py` (Google Scholar via `scholarly`). **Scraping-based**; rate-limits and CAPTCHAs are expected under sustained use. Keep it for personal/interactive runs; fall back to Semantic Scholar or arXiv when CI-scale reliability matters.
-- No SARIF/JSON report formats yet — only `report/text.py`. The `Finding` pydantic model is the serialization seam when those arrive.
+- Retrieval uses **Semantic Scholar** by default (free API, no auth, no CAPTCHAs). Google Scholar (`scholarly`) is available as an opt-in backend via `--retrieval google-scholar` but is scraping-based and may hit CAPTCHAs under sustained use. Backend switching is done at runtime via `qalmsw.retrieval.set_backend()`.
+- JSON report output is available via `--json` for CI integration. The `Finding` pydantic model is the serialization seam for future SARIF support.

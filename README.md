@@ -5,7 +5,7 @@ Catches the artefacts that get you a 1-year arXiv ban — before you submit.
 
 ## What it catches
 
-qalmsw now checks for all three categories of "incontrovertible evidence" that arXiv's
+qalmsw checks for all three categories of "incontrovertible evidence" that arXiv's
 Code of Conduct penalises:
 
 | What arXiv flags | How qalmsw catches it |
@@ -17,9 +17,11 @@ Code of Conduct penalises:
 | **LLM self-awareness artifacts** ("as an AI language model", "I cannot provide") | `artifacts` checker |
 | **LLM-generated LaTeX boilerplate** (\lipsum, \blindtext, TODO/FIXME) | `artifacts` checker |
 | **Unreferenced figures/tables** | `figures` checker — warns on labels never \ref'd |
+| **Missing image files** (\includegraphics pointing to non-existent files) | `images` checker — verifies referenced images exist on disk |
 | **Grammar & style issues** | `grammar` checker — per-paragraph LLM pass |
 | **Missing citations** | `citations` checker — cross-references \cite vs .bib |
 | **Substantive reviewer concerns** | `reviewer` checker — per-section LLM critique |
+| **Unsupported claims** *(opt-in)* | `claims` checker — checks each \cite-backed claim against the cited paper's abstract |
 
 The first three rows are the ones that get you banned. qalmsw catches all of them.
 
@@ -34,10 +36,14 @@ pip install -e '.[dev]'
 qalmsw check path/to/paper.tex                             # run all checkers
 qalmsw check --skip-grammar --skip-reviewer paper.tex      # deterministic checks only (fast)
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations + artifacts + references
-qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls (match server --parallel N)
+qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
+qalmsw check --json paper.tex                              # JSON output for CI
+qalmsw check ch1.tex ch2.tex ch3.tex                       # batch mode: check multiple files
+qalmsw check "src/**/*.tex"                                # glob expansion
 
-qalmsw scholar "Attention Is All You Need"                 # Google Scholar lookup (scraping; expect CAPTCHAs on bulk use)
+qalmsw scholar "Attention Is All You Need"                 # Semantic Scholar lookup (default, free API)
+qalmsw check --enable-claims --retrieval google-scholar paper.tex  # claims check via Google Scholar
 ```
 
 Environment variables:
@@ -51,6 +57,7 @@ Environment variables:
 |---|---|---|---|
 | `artifacts` | No | Instant | Scans for LLM meta-comments, placeholders, self-awareness, boilerplate |
 | `figures` | No | Instant | Checks captions, labels, refs, empty floats |
+| `images` | No | Instant | Verifies \includegraphics files exist on disk |
 | `citations` | No | Instant | `.bib` vs `\cite` cross-check: MISSING, UNUSED, DUPLICATE |
 | `references` | Network | Slow | Verifies arXiv IDs and DOIs resolve to real papers |
 | `grammar` | LLM | Per-paragraph | Grammar, spelling, punctuation |
@@ -60,6 +67,17 @@ Environment variables:
 Exit code is `1` only when an `error`-severity finding is present (missing citation,
 LLM artifact, hallucinated reference), so unused-bib-entry `info`s or duplicate-key
 `warning`s don't fail CI.
+
+### Retrieval backends
+
+The `claims` checker needs to fetch paper abstracts. Two backends are available:
+
+| Backend | Flag | Auth | Reliability | Speed |
+|---|---|---|---|---|
+| **Semantic Scholar** (default) | `--retrieval semantic-scholar` | None | High (real API) | ~1 req/sec |
+| **Google Scholar** | `--retrieval google-scholar` | None | Low (scraping, CAPTCHAs) | ~1 req/sec |
+
+Default is Semantic Scholar — no auth, no CAPTCHAs, works in CI.
 
 ## arXiv Code of Conduct
 
@@ -94,8 +112,9 @@ Document.load
 checkers.*               # each implements check(doc) -> list[Finding]
    │
    ▼
-report.render_findings   # rich-formatted terminal output
+report.render_findings   # rich-formatted terminal output (or --json for CI)
 ```
 
-Deterministic checkers (artifacts, figures, citations) run first and always.
+Deterministic checkers (artifacts, figures, images, citations) run first and always.
 LLM checkers (grammar, reviewer, claims) run only when a server is available.
+Network checkers (references, claims) make live API calls.

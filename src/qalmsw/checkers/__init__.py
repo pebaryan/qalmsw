@@ -4,6 +4,7 @@ from qalmsw.checkers.citations import CitationChecker
 from qalmsw.checkers.claims import ClaimsChecker
 from qalmsw.checkers.figures import FigureTableChecker
 from qalmsw.checkers.grammar import GrammarChecker
+from qalmsw.checkers.images import ImageChecker
 from qalmsw.checkers.references import ReferenceChecker
 from qalmsw.checkers.reviewer import ReviewerChecker
 
@@ -15,6 +16,7 @@ __all__ = [
     "FigureTableChecker",
     "Finding",
     "GrammarChecker",
+    "ImageChecker",
     "ReferenceChecker",
     "ReviewerChecker",
     "Severity",
