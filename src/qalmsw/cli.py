@@ -9,11 +9,14 @@ from rich.console import Console
 from qalmsw import __version__
 from qalmsw.bib import BibEntry, extract_inline_bibitems, parse_bib_file
 from qalmsw.checkers import (
+    ArtifactChecker,
     Checker,
     CitationChecker,
     ClaimsChecker,
+    FigureTableChecker,
     Finding,
     GrammarChecker,
+    ReferenceChecker,
     ReviewerChecker,
 )
 from qalmsw.document import Document
@@ -79,7 +82,9 @@ def check(
                 "no inline \\begin{thebibliography}); citation checks will be limited."
             )
 
-    checkers: list[Checker] = [CitationChecker(bib_entries)]
+    checkers: list[Checker] = [ArtifactChecker(), FigureTableChecker(), CitationChecker(bib_entries)]
+    if bib_entries:
+        checkers.append(ReferenceChecker(bib_entries))
     if not skip_grammar or not skip_reviewer or enable_claims:
         llm = LlamaCppClient(base_url=base_url, model=model)
         if not skip_grammar:

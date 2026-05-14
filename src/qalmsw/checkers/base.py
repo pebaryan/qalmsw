@@ -5,7 +5,7 @@ can consume them uniformly regardless of which checker emitted them.
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Protocol
 
 from pydantic import BaseModel, Field
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from qalmsw.document import Document
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     info = "info"
     warning = "warning"
     error = "error"

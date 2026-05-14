@@ -40,6 +40,8 @@ class BibEntry:
     line: int
     title: str = ""
     author: str = ""
+    eprint: str = ""
+    doi: str = ""
 
 
 def _strip_line_comments_preserve_lines(text: str) -> str:
@@ -66,6 +68,8 @@ def _extract_fields(text: str) -> dict[str, dict[str, str]]:
         fields[key] = {
             "title": _clean_value(raw.get("title", "")),
             "author": _clean_value(raw.get("author", "")),
+            "eprint": _clean_value(raw.get("eprint", "")),
+            "doi": _clean_value(raw.get("doi", "")),
         }
     return fields
 
@@ -95,6 +99,8 @@ def parse_bib_text(text: str, source: Path) -> list[BibEntry]:
                 line=line,
                 title=extra.get("title", ""),
                 author=extra.get("author", ""),
+                eprint=extra.get("eprint", ""),
+                doi=extra.get("doi", ""),
             )
         )
     return entries
