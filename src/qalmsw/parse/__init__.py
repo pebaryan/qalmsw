@@ -1,7 +1,7 @@
 from qalmsw.parse.citations import CitationRef, scan_bib_resources, scan_citations
 from qalmsw.parse.includes import LineMapEntry, resolve_includes
 from qalmsw.parse.sections import Section, parse_sections
-from qalmsw.parse.tex import Paragraph, extract_body, has_prose, parse_paragraphs
+from qalmsw.parse.tex import Paragraph, extract_body, has_math, has_prose, parse_paragraphs
 
 __all__ = [
     "CitationRef",
@@ -9,6 +9,7 @@ __all__ = [
     "Paragraph",
     "Section",
     "extract_body",
+    "has_math",
     "has_prose",
     "parse_paragraphs",
     "parse_sections",

@@ -20,6 +20,14 @@ _BEGIN_DOC_RE = re.compile(r"\\begin\{document\}")
 _END_DOC_RE = re.compile(r"\\end\{document\}")
 _THEBIB_RE = re.compile(r"\\begin\{thebibliography\}")
 _LATEX_CMD_RE = re.compile(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^}]*\})?")
+_MATH_DOUBLE_DOLLAR_RE = re.compile(r"(?<!\\)\$\$")
+_MATH_DOLLAR_RE = re.compile(r"(?<!\\)\$(?!\$)")
+_MATH_PAREN_RE = re.compile(r"(?<!\\)\\\(|(?<!\\)\\\[")
+_MATH_ENV_RE = re.compile(
+    r"\\begin\{(?:equation|equation\*|align|align\*|gather|gather\*|multline|multline\*|"
+    r"eqnarray|eqnarray\*|flalign|flalign\*|alignat|alignat\*|math|displaymath|cases|split|"
+    r"matrix|pmatrix|bmatrix|vmatrix|Vmatrix)\}"
+)
 _WORD_RE = re.compile(r"[A-Za-z]{3,}")
 
 
@@ -125,3 +133,18 @@ def has_prose(text: str, min_words: int = 3) -> bool:
     """
     cleaned = _LATEX_CMD_RE.sub(" ", text)
     return len(_WORD_RE.findall(cleaned)) >= min_words
+
+
+def has_math(text: str) -> bool:
+    """True if `text` appears to contain LaTeX math.
+
+    This is a lightweight heuristic used to avoid sending paragraphs without any math
+    to the math-consistency checker. It intentionally errs on the side of calling the
+    checker when the content looks math-like.
+    """
+    return bool(
+        _MATH_DOUBLE_DOLLAR_RE.search(text)
+        or _MATH_DOLLAR_RE.search(text)
+        or _MATH_PAREN_RE.search(text)
+        or _MATH_ENV_RE.search(text)
+    )

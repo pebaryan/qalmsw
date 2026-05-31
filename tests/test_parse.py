@@ -1,4 +1,4 @@
-from qalmsw.parse import has_prose, parse_paragraphs
+from qalmsw.parse import has_math, has_prose, parse_paragraphs
 
 
 def test_simple_paragraphs():
@@ -67,6 +67,17 @@ def test_has_prose_accepts_real_sentences():
 
 def test_has_prose_accepts_prose_with_latex_commands():
     assert has_prose("Recent work~\\cite{foo} shows that self-attention scales well.")
+
+
+def test_has_math_detects_inline_and_display_math():
+    assert has_math("Let $x=1$ for the rest of the proof.")
+    assert has_math("Let $$x=1$$ for the rest of the proof.")
+    assert has_math("\\begin{equation}x=1\\end{equation}")
+    assert has_math("We define \\(x\\) as the latent variable.")
+
+
+def test_has_math_rejects_plain_prose():
+    assert not has_math("This paragraph has no formulas.")
 
 
 def test_inline_thebibliography_is_excluded_from_body():

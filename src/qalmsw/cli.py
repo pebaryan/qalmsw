@@ -18,6 +18,7 @@ from qalmsw.checkers import (
     Finding,
     GrammarChecker,
     ImageChecker,
+    MathChecker,
     ReferenceChecker,
     ReviewerChecker,
 )
@@ -50,6 +51,7 @@ def check(
         "\\bibliography{} / \\addbibresource{} declarations.",
     ),
     skip_grammar: bool = typer.Option(False, "--skip-grammar", help="Skip LLM grammar checker"),
+    skip_math: bool = typer.Option(False, "--skip-math", help="Skip LLM math checker"),
     skip_reviewer: bool = typer.Option(False, "--skip-reviewer", help="Skip LLM reviewer checker"),
     enable_claims: bool = typer.Option(
         False,
@@ -98,8 +100,16 @@ def check(
                 console.print(f"[bold]{file}[/]")
 
         has_errors = _check_single(
-            file, bib, skip_grammar, skip_reviewer, enable_claims,
-            concurrency, base_url, model, json_output,
+            file,
+            bib,
+            skip_grammar,
+            skip_math,
+            skip_reviewer,
+            enable_claims,
+            concurrency,
+            base_url,
+            model,
+            json_output,
         )
         if has_errors:
             any_errors = True
@@ -111,6 +121,7 @@ def _check_single(
     file: Path,
     bib: list[Path],
     skip_grammar: bool,
+    skip_math: bool,
     skip_reviewer: bool,
     enable_claims: bool,
     concurrency: int,
@@ -150,10 +161,12 @@ def _check_single(
     ]
     if bib_entries:
         checkers.append(ReferenceChecker(bib_entries))
-    if not skip_grammar or not skip_reviewer or enable_claims:
+    if not skip_grammar or not skip_math or not skip_reviewer or enable_claims:
         llm = LlamaCppClient(base_url=base_url, model=model)
         if not skip_grammar:
             checkers.append(GrammarChecker(llm, concurrency=concurrency))
+        if not skip_math:
+            checkers.append(MathChecker(llm, concurrency=concurrency))
         if not skip_reviewer:
             checkers.append(ReviewerChecker(llm, concurrency=concurrency))
         if enable_claims:
@@ -225,6 +238,3 @@ def _load_bib_entries(paths: list[Path]) -> list[BibEntry]:
     for p in paths:
         entries.extend(parse_bib_file(p))
     return entries
-
-
-
