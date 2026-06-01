@@ -1,9 +1,15 @@
 ---
 title: qalmsw
+emoji: ✅
+colorFrom: teal
+colorTo: slate
 sdk: gradio
+sdk_version: 5.0.0
+python_version: '3.11'
 app_file: app.py
-python_version: 3.11
+pinned: false
 license: mit
+short_description: automated QA for scientific LaTeX writing
 ---
 
 # qalmsw
@@ -177,3 +183,4 @@ Network checkers (references, claims) make live API calls.
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Roadmap and funding plan: [ROADMAP.md](ROADMAP.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
+
