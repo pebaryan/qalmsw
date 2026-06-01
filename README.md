@@ -1,8 +1,8 @@
 ---
 title: qalmsw
 emoji: ✅
-colorFrom: teal
-colorTo: slate
+colorFrom: blue
+colorTo: indigo
 sdk: gradio
 sdk_version: 5.0.0
 python_version: '3.11'
