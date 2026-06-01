@@ -1,3 +1,11 @@
+---
+title: qalmsw
+sdk: gradio
+app_file: app.py
+python_version: 3.11
+license: mit
+---
+
 # qalmsw
 
 [![CI](https://github.com/pebaryan/qalmsw/actions/workflows/ci.yml/badge.svg)](https://github.com/pebaryan/qalmsw/actions/workflows/ci.yml)
@@ -68,6 +76,29 @@ Environment variables:
 
 - `QALMSW_BASE_URL` - llama.cpp server URL (default `http://localhost:8080/v1`)
 - `QALMSW_MODEL` - model name (default `local-model`; llama.cpp usually ignores this)
+- `QALMSW_API_KEY` - optional API key for non-local OpenAI-compatible endpoints
+
+## Web frontend
+
+The repository includes a Gradio frontend that can run as a Hugging Face Space.
+Install the Space extra and start it locally with:
+
+```bash
+pip install -e ".[space]"
+python app.py
+```
+
+For a hosted Space, the deterministic checks work without secrets. LLM-backed checks
+can be configured from the web UI by entering:
+
+- Base URL, such as `https://api.openai.com/v1`
+- Model, using an ID supported by the selected backend
+- API key, when the backend requires one
+
+If those fields are left blank, the app falls back to `QALMSW_BASE_URL`,
+`QALMSW_MODEL`, and `QALMSW_API_KEY` from Hugging Face Space variables/secrets.
+For a public Space, prefer a Space secret for a shared API key; the web field is
+best for user-supplied per-run credentials.
 
 ## Checkers
 

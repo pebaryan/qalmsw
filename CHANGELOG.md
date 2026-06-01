@@ -11,3 +11,4 @@ All notable project changes should be recorded here before a release is tagged.
   or multi-file checks.
 - Fixed claims-checker retrieval backend selection so runtime backend switches
   affect new `ClaimsChecker` instances.
+- Added a Gradio web frontend for Hugging Face Spaces with configurable LLM backend fields.

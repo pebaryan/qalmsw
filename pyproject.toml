@@ -37,6 +37,9 @@ dev = [
     "pytest-mock>=3.12",
     "ruff>=0.5",
 ]
+space = [
+    "gradio>=6.0,<7",
+]
 
 [project.scripts]
 qalmsw = "qalmsw.cli:app"
