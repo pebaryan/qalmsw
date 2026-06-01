@@ -25,7 +25,7 @@ from qalmsw.checkers import (
 from qalmsw.document import Document
 from qalmsw.llm import LlamaCppClient
 from qalmsw.parse import scan_bib_resources
-from qalmsw.report import render_findings, render_findings_json
+from qalmsw.report import render_batch_findings_json, render_findings
 from qalmsw.retrieval import search_by_title, set_backend
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -88,10 +88,11 @@ def check(
     # Select retrieval backend for claims checker
     set_backend(retrieval)
 
-    if len(resolved) > 1:
+    if len(resolved) > 1 and not json_output:
         console.print(f"[dim]{len(resolved)} file(s) to check[/]")
 
     any_errors = False
+    json_results: list[tuple[Path, list[Finding]]] = []
     for file in resolved:
         if not json_output:
             if len(resolved) > 1:
@@ -99,7 +100,7 @@ def check(
             else:
                 console.print(f"[bold]{file}[/]")
 
-        has_errors = _check_single(
+        has_errors, findings = _check_single(
             file,
             bib,
             skip_grammar,
@@ -113,7 +114,11 @@ def check(
         )
         if has_errors:
             any_errors = True
+        if json_output:
+            json_results.append((file, findings))
 
+    if json_output:
+        console.file.write(render_batch_findings_json(json_results) + "\n")
     raise typer.Exit(code=1 if any_errors else 0)
 
 
@@ -128,14 +133,15 @@ def _check_single(
     base_url: str | None,
     model: str | None,
     json_output: bool,
-) -> bool:
-    """Run checks on a single file. Returns True if any errors found."""
+) -> tuple[bool, list[Finding]]:
+    """Run checks on a single file. Returns error state plus all findings."""
     doc = Document.load(file)
-    console.print(f"[dim]{len(doc.paragraphs)} paragraph(s) parsed[/]")
+    if not json_output:
+        console.print(f"[dim]{len(doc.paragraphs)} paragraph(s) parsed[/]")
 
-    bib_paths = list(bib) if bib else _discover_bib_files(doc)
+    bib_paths = list(bib) if bib else _discover_bib_files(doc, quiet=json_output)
     bib_entries = _load_bib_entries(bib_paths)
-    if bib_paths:
+    if bib_paths and not json_output:
         console.print(f"[dim]{len(bib_entries)} bib entries from {len(bib_paths)} file(s)[/]")
     if not bib_entries:
         inline = extract_inline_bibitems(
@@ -143,11 +149,12 @@ def _check_single(
         )
         if inline:
             bib_entries = inline
-            console.print(
-                f"[dim]{len(inline)} bib entries from inline "
-                f"\\begin{{thebibliography}}[/]"
-            )
-        else:
+            if not json_output:
+                console.print(
+                    f"[dim]{len(inline)} bib entries from inline "
+                    f"\\begin{{thebibliography}}[/]"
+                )
+        elif not json_output:
             console.print(
                 "[yellow]warning[/]: no bib entries found (no --bib, no \\bibliography{}, "
                 "no inline \\begin{thebibliography}); citation checks will be limited."
@@ -176,12 +183,10 @@ def _check_single(
     for c in checkers:
         findings.extend(c.check(doc))
 
-    if json_output:
-        console.print(render_findings_json(file, findings))
-    else:
+    if not json_output:
         render_findings(console, file, findings)
 
-    return any(f.severity.value == "error" for f in findings)
+    return any(f.severity.value == "error" for f in findings), findings
 
 
 @app.command()
@@ -220,7 +225,7 @@ def _resolve_files(paths: list[Path]) -> list[Path]:
     return resolved
 
 
-def _discover_bib_files(doc: Document) -> list[Path]:
+def _discover_bib_files(doc: Document, quiet: bool = False) -> list[Path]:
     names = scan_bib_resources(doc.source)
     base_dir = doc.path.parent
     resolved: list[Path] = []
@@ -228,7 +233,7 @@ def _discover_bib_files(doc: Document) -> list[Path]:
         candidate = base_dir / (name if name.endswith(".bib") else f"{name}.bib")
         if candidate.exists():
             resolved.append(candidate)
-        else:
+        elif not quiet:
             console.print(f"[yellow]warning[/]: referenced bib file not found: {candidate}")
     return resolved
 

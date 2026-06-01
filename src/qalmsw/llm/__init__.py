@@ -1,3 +1,3 @@
-from qalmsw.llm.client import LLMClient, LlamaCppClient
+from qalmsw.llm.client import LlamaCppClient, LLMClient
 
 __all__ = ["LLMClient", "LlamaCppClient"]

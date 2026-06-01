@@ -7,7 +7,20 @@ name = "qalmsw"
 version = "0.0.1"
 description = "Automated QA for scientific LaTeX writing using local LLMs"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
+keywords = ["latex", "llm", "scientific-writing", "citations", "quality-assurance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Text Processing :: Markup :: LaTeX",
+]
 dependencies = [
     "pylatexenc>=2.10",
     "openai>=1.40",
@@ -28,6 +41,11 @@ dev = [
 [project.scripts]
 qalmsw = "qalmsw.cli:app"
 
+[project.urls]
+Homepage = "https://github.com/pebaryan/qalmsw"
+Repository = "https://github.com/pebaryan/qalmsw"
+Issues = "https://github.com/pebaryan/qalmsw/issues"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/qalmsw"]
 
@@ -37,6 +55,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/qalmsw/cli.py" = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "research/tests"]

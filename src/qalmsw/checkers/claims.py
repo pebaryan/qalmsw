@@ -14,7 +14,7 @@ Pipeline for each paragraph that contains a ``\\cite{}``:
 
 Design notes:
 - Scholar is injected as a ``Callable[[str], ScholarResult | None]`` so tests can stub
-  it without hitting the network. Default: :func:`qalmsw.retrieval.search_by_title`.
+  it without hitting the network. Default: the active ``qalmsw.retrieval`` backend.
 - Scholar lookups are per-run-cached by bib key. Duplicate ``\\cite`` of the same paper
   costs one network call, not N.
 - We never raise on Scholar failures — they become ``info`` findings so the rest of
@@ -25,14 +25,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+import qalmsw.retrieval as retrieval
 from qalmsw.bib import BibEntry
 from qalmsw.checkers.base import Finding, Severity
 from qalmsw.document import Document
 from qalmsw.llm import LLMClient
 from qalmsw.parse import Paragraph, scan_citations
-from qalmsw.retrieval import ScholarResult, search_by_title
+from qalmsw.retrieval import ScholarResult
 
-_EXTRACT_SYSTEM_PROMPT = """You are extracting citation-backed claims from a paragraph of a scientific paper.
+_EXTRACT_SYSTEM_PROMPT = """You are extracting citation-backed claims from a paragraph
+of a scientific paper.
 
 A "claim" is a factual or empirical assertion that is explicitly attributed to one or \
 more citations. Do NOT include statements that don't carry a citation.
@@ -84,11 +86,11 @@ class ClaimsChecker:
         self,
         llm: LLMClient,
         bib_entries: list[BibEntry],
-        search: SearchFn = search_by_title,
+        search: SearchFn | None = None,
     ) -> None:
         self._llm = llm
         self._bib_by_key = {e.key: e for e in bib_entries}
-        self._search = search
+        self._search = search or retrieval.search_by_title
         self._abstract_cache: dict[str, ScholarResult | None] = {}
 
     def check(self, doc: Document) -> list[Finding]:
@@ -103,7 +105,10 @@ class ClaimsChecker:
         return findings
 
     def _extract_claims(self, para: Paragraph, cite_keys: list[str]) -> list[dict[str, Any]]:
-        prompt = f"Cite keys present: {', '.join(sorted(set(cite_keys)))}\n\nParagraph:\n{para.text}"
+        prompt = (
+            f"Cite keys present: {', '.join(sorted(set(cite_keys)))}\n\n"
+            f"Paragraph:\n{para.text}"
+        )
         result = self._llm.complete_json(_EXTRACT_SYSTEM_PROMPT, prompt)
         raw_claims = result.get("claims", [])
         return [c for c in raw_claims if isinstance(c, dict) and c.get("claim")]
@@ -119,7 +124,13 @@ class ClaimsChecker:
     def _verify_single(self, para: Paragraph, claim_text: str, cite_key: str) -> list[Finding]:
         entry = self._bib_by_key.get(cite_key)
         if entry is None:
-            return [_finding(para, Severity.info, f"Unknown cite key '{cite_key}' in claim: {claim_text}")]
+            return [
+                _finding(
+                    para,
+                    Severity.info,
+                    f"Unknown cite key '{cite_key}' in claim: {claim_text}",
+                )
+            ]
         if not entry.title:
             return [
                 _finding(
@@ -134,7 +145,8 @@ class ClaimsChecker:
                 _finding(
                     para,
                     Severity.info,
-                    f"Could not retrieve abstract for '{cite_key}' ({entry.title!r}) — claim unverified.",
+                    f"Could not retrieve abstract for '{cite_key}' "
+                    f"({entry.title!r}) — claim unverified.",
                 )
             ]
         if not abstract_result.abstract:
@@ -147,7 +159,11 @@ class ClaimsChecker:
             ]
         verdict_raw = self._llm.complete_json(
             _JUDGE_SYSTEM_PROMPT,
-            f"Claim: {claim_text}\n\nCited paper title: {abstract_result.title}\n\nAbstract: {abstract_result.abstract}",
+            (
+                f"Claim: {claim_text}\n\n"
+                f"Cited paper title: {abstract_result.title}\n\n"
+                f"Abstract: {abstract_result.abstract}"
+            ),
         )
         verdict = str(verdict_raw.get("verdict", "unclear")).strip().lower()
         rationale = str(verdict_raw.get("rationale", "")).strip()

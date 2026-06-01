@@ -75,5 +75,5 @@ When adding a checker: drop a file into `src/qalmsw/checkers/`, register it in `
 ### What's intentionally *not* here
 
 - No LLM-assisted citation verification (does this citation actually support this claim?). That's the `claims` checker's territory.
-- Retrieval uses **Google Scholar** by default (`src/qalmsw/retrieval/scholar.py` via `scholarly`). **Scraping-based**; rate-limits and CAPTCHAs are expected under sustained use. Keep it for personal/interactive runs; fall back to Semantic Scholar or arXiv when CI-scale reliability matters. Backend switching is done at runtime via `qalmsw.retrieval.set_backend()`.
-- No SARIF/JSON report formats yet — only `report/text.py`. The `Finding` pydantic model is the serialization seam for future support.
+- Retrieval uses **Semantic Scholar** by default (`src/qalmsw/retrieval/semantic_scholar.py`). Google Scholar remains available as an opt-in scraping backend and may hit rate limits or CAPTCHAs. Backend switching is done at runtime via `qalmsw.retrieval.set_backend()`.
+- JSON report output exists in `report/json.py`; SARIF is still future work. The `Finding` pydantic model is the serialization seam for future output formats.

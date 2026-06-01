@@ -14,8 +14,9 @@ __all__ = ["ScholarResult", "search_by_title", "set_backend"]
 def set_backend(name: str) -> None:
     """Switch the active retrieval backend at runtime.
 
-    This patches the module-level ``search_by_title`` so existing imports
-    like ``from qalmsw.retrieval import search_by_title`` pick up the change.
+    This patches the module-level ``search_by_title``. Code that needs runtime
+    switching should resolve ``qalmsw.retrieval.search_by_title`` after calling
+    this function instead of keeping an earlier direct function import.
 
     Parameters
     ----------

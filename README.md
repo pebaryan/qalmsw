@@ -1,7 +1,22 @@
 # qalmsw
 
-Automated QA for scientific LaTeX writing, powered by a local LLM (llama.cpp server).
-Catches the artefacts that get you a 1-year arXiv ban - before you submit.
+[![CI](https://github.com/pebaryan/qalmsw/actions/workflows/ci.yml/badge.svg)](https://github.com/pebaryan/qalmsw/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Local-first automated QA for scientific LaTeX writing, powered by a local LLM
+through a llama.cpp OpenAI-compatible server.
+
+qalmsw catches high-risk artifacts before submission: LLM meta-comments,
+placeholder data, hallucinated references, missing figures, citation mistakes,
+and claim/reference mismatches. Deterministic checks run without an LLM, while
+grammar, math, reviewer, and claims checks are opt-in parts of a local review
+workflow.
+
+## Status
+
+Pre-1.0 and actively maintained. The package has a Python CLI, focused tests,
+JSON output for CI integrations, and a local-first architecture. See
+[ROADMAP.md](ROADMAP.md) for the maintainer plan and Codex/API credit use case.
 
 ## What it catches
 
@@ -24,12 +39,13 @@ Code of Conduct penalises:
 | **Substantive reviewer concerns** | `reviewer` checker - per-section LLM critique |
 | **Unsupported claims** *(opt-in)* | `claims` checker - checks each \cite-backed claim against the cited paper's abstract |
 
-The first three rows are the ones that get you banned. qalmsw catches all of them.
+The first three rows are the highest-risk categories. qalmsw catches all of them
+with deterministic checks, so they can run in CI without LLM cost.
 
 ## Quick start
 
 ```bash
-pip install -e '.[dev]'
+pip install -e ".[dev]"
 
 # Start llama.cpp server separately, e.g.
 #   ./llama-server -m model.gguf -c 8192 --port 8080
@@ -40,7 +56,7 @@ qalmsw check --skip-math --skip-grammar --skip-reviewer paper.tex
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations + artifacts + references
 qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
-qalmsw check --json paper.tex                              # JSON output for CI
+qalmsw check --json paper.tex                              # parseable JSON output for CI
 qalmsw check ch1.tex ch2.tex ch3.tex                       # batch mode: check multiple files
 qalmsw check "src/**/*.tex"                                # glob expansion
 
@@ -121,3 +137,12 @@ report.render_findings   # rich-formatted terminal output (or --json for CI)
 Deterministic checkers (artifacts, figures, images, citations) run first and always.
 LLM checkers (grammar, math, reviewer, claims) run only when a server is available.
 Network checkers (references, claims) make live API calls.
+
+## Open Source
+
+- License: [MIT](LICENSE)
+- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Roadmap and funding plan: [ROADMAP.md](ROADMAP.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)

@@ -44,9 +44,12 @@ def test_supports_verdict_produces_no_finding():
         extract=[{"claims": [{"claim": "LLMs are powerful", "cite_keys": ["foo"]}]}],
         judge=[{"verdict": "supports", "rationale": "abstract confirms"}],
     )
-    findings = ClaimsChecker(llm, [_entry("foo", "Big LLMs")], search=_stub_search("Big LLMs")).check(
-        _doc([para])
+    checker = ClaimsChecker(
+        llm,
+        [_entry("foo", "Big LLMs")],
+        search=_stub_search("Big LLMs"),
     )
+    findings = checker.check(_doc([para]))
     assert findings == []
 
 
@@ -56,7 +59,8 @@ def test_contradicts_verdict_produces_error_finding():
         extract=[{"claims": [{"claim": "X always works", "cite_keys": ["foo"]}]}],
         judge=[{"verdict": "contradicts", "rationale": "abstract says otherwise"}],
     )
-    findings = ClaimsChecker(llm, [_entry("foo")], search=_stub_search("A Paper")).check(_doc([para]))
+    checker = ClaimsChecker(llm, [_entry("foo")], search=_stub_search("A Paper"))
+    findings = checker.check(_doc([para]))
     assert len(findings) == 1
     f = findings[0]
     assert f.checker == "claims"
@@ -152,3 +156,24 @@ def test_abstract_is_cached_per_bib_key():
 
     ClaimsChecker(llm, [_entry("foo")], search=counting_search).check(_doc([para1, para2]))
     assert call_count["n"] == 1
+
+
+def test_default_search_uses_active_retrieval_backend(monkeypatch):
+    """ClaimsChecker should pick up runtime backend switches by default."""
+    import qalmsw.retrieval as retrieval
+
+    para = Paragraph(text="LLMs are useful \\cite{foo}.", start_line=1, end_line=1)
+    llm = ScriptedLLM(
+        extract=[{"claims": [{"claim": "LLMs are useful", "cite_keys": ["foo"]}]}],
+        judge=[{"verdict": "supports", "rationale": "abstract confirms"}],
+    )
+    calls: list[str] = []
+
+    def active_search(title: str) -> ScholarResult | None:
+        calls.append(title)
+        return ScholarResult(title=title, authors=[], year=None, abstract="Useful.", url=None)
+
+    monkeypatch.setattr(retrieval, "search_by_title", active_search)
+    ClaimsChecker(llm, [_entry("foo", "Active Backend")]).check(_doc([para]))
+
+    assert calls == ["Active Backend"]
