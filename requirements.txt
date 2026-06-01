@@ -1,1 +1,1 @@
-qalmsw
+git+https://github.com/pebaryan/qalmsw.git
