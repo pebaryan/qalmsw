@@ -272,7 +272,7 @@ def _llm_status() -> str:
     return "Deterministic checks only"
 
 
-with gr.Blocks(title="qalmsw") as demo:
+with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
     gr.Markdown("# qalmsw")
     gr.Markdown(f"<span class='status-pill'>{_llm_status()}</span>")
 
@@ -361,4 +361,4 @@ with gr.Blocks(title="qalmsw") as demo:
 
 
 if __name__ == "__main__":
-    demo.queue().launch(theme=_THEME, css=_CSS)
+    demo.queue().launch()
