@@ -268,8 +268,8 @@ def _clean(value: str | None) -> str | None:
 
 def _llm_status() -> str:
     if os.environ.get("QALMSW_BASE_URL"):
-        return "LLM endpoint configured"
-    return "Deterministic checks only"
+        return "✅ LLM backend configured — all checkers available"
+    return "⚠️ Deterministic checks only — enable [LLM] checkers by configuring the backend below"
 
 
 with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
@@ -295,11 +295,13 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
 
         with gr.Column(scale=4, min_width=320):
             with gr.Group():
+                gr.Markdown("**Always runs:** artifacts, citations, figures, images")
+                gr.Markdown("### Optional checks")
                 verify_references = gr.Checkbox(label="Verify arXiv IDs and DOIs", value=False)
-                run_grammar = gr.Checkbox(label="Grammar", value=False)
-                run_math = gr.Checkbox(label="Math consistency", value=False)
-                run_reviewer = gr.Checkbox(label="Reviewer critique", value=False)
-                run_claims = gr.Checkbox(label="Claim support", value=False)
+                run_grammar = gr.Checkbox(label="Grammar [LLM]", value=False)
+                run_math = gr.Checkbox(label="Math consistency [LLM]", value=False)
+                run_reviewer = gr.Checkbox(label="Reviewer critique [LLM]", value=False)
+                run_claims = gr.Checkbox(label="Claim support [LLM]", value=False)
                 retrieval_backend = gr.Dropdown(
                     label="Retrieval backend",
                     choices=["semantic-scholar", "google-scholar"],
@@ -312,7 +314,8 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
                     step=1,
                     value=1,
                 )
-            with gr.Accordion("LLM backend", open=True):
+            with gr.Accordion("LLM backend config", open=False):
+                gr.Markdown("Set `QALMSW_BASE_URL` and `QALMSW_MODEL` as Space secrets to enable [LLM] checkers.")
                 llm_base_url = gr.Textbox(
                     label="Base URL",
                     placeholder="https://api.openai.com/v1",
