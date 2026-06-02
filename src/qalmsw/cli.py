@@ -53,6 +53,11 @@ def check(
     skip_grammar: bool = typer.Option(False, "--skip-grammar", help="Skip LLM grammar checker"),
     skip_math: bool = typer.Option(False, "--skip-math", help="Skip LLM math checker"),
     skip_reviewer: bool = typer.Option(False, "--skip-reviewer", help="Skip LLM reviewer checker"),
+    skip_references: bool = typer.Option(
+        False,
+        "--skip-references",
+        help="Skip network reference validation against arXiv and DOI resolvers.",
+    ),
     enable_claims: bool = typer.Option(
         False,
         "--enable-claims",
@@ -106,6 +111,7 @@ def check(
             skip_grammar,
             skip_math,
             skip_reviewer,
+            skip_references,
             enable_claims,
             concurrency,
             base_url,
@@ -128,6 +134,7 @@ def _check_single(
     skip_grammar: bool,
     skip_math: bool,
     skip_reviewer: bool,
+    skip_references: bool,
     enable_claims: bool,
     concurrency: int,
     base_url: str | None,
@@ -166,8 +173,10 @@ def _check_single(
         ImageChecker(),
         CitationChecker(bib_entries),
     ]
-    if bib_entries:
+    if bib_entries and not skip_references:
         checkers.append(ReferenceChecker(bib_entries))
+    elif bib_entries and skip_references and not json_output:
+        console.print("[dim]skipping references checker[/]")
     if not skip_grammar or not skip_math or not skip_reviewer or enable_claims:
         llm = LlamaCppClient(base_url=base_url, model=model)
         if not skip_grammar:
@@ -181,6 +190,8 @@ def _check_single(
 
     findings: list[Finding] = []
     for c in checkers:
+        if not json_output:
+            console.print(f"[dim]running {c.name} checker[/]")
         findings.extend(c.check(doc))
 
     if not json_output:

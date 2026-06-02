@@ -65,9 +65,10 @@ pip install -e ".[dev]"
 #   ./llama-server -m model.gguf -c 8192 --port 8080
 
 qalmsw check path/to/paper.tex                             # run all checkers
-qalmsw check --skip-grammar --skip-reviewer paper.tex      # deterministic checks only (fast)
+qalmsw check --skip-grammar --skip-math --skip-reviewer --skip-references paper.tex  # fast local checks
 qalmsw check --skip-math --skip-grammar --skip-reviewer paper.tex
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations + artifacts + references
+qalmsw check --skip-references paper.tex                   # avoid DOI/arXiv network validation
 qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
 qalmsw check --json paper.tex                              # parseable JSON output for CI
@@ -174,6 +175,8 @@ report.render_findings   # rich-formatted terminal output (or --json for CI)
 Deterministic checkers (artifacts, figures, images, citations) run first and always.
 LLM checkers (grammar, math, reviewer, claims) run only when a server is available.
 Network checkers (references, claims) make live API calls.
+Use `--skip-references` when you want a fast local-only pass over artifacts,
+figures, images, and citation consistency.
 
 ## Open Source
 

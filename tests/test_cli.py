@@ -124,3 +124,37 @@ def test_json_output_batches_multiple_files(tmp_path: Path):
         str(tex1),
         str(tex2),
     ]
+
+
+def test_skip_references_allows_fast_deterministic_json_run(tmp_path: Path):
+    """--skip-references should avoid network validation for DOI/arXiv bib entries."""
+    tex = tmp_path / "paper.tex"
+    bib = tmp_path / "refs.bib"
+    tex.write_text(
+        r"\documentclass{article}\begin{document}Known result \cite{smith2024}."
+        r"\bibliography{refs}\end{document}"
+    )
+    bib.write_text(
+        "@article{smith2024,\n"
+        "  title = {Known Result},\n"
+        "  author = {Smith, Jane},\n"
+        "  doi = {10.1234/example}\n"
+        "}\n"
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "check",
+            "--skip-grammar",
+            "--skip-math",
+            "--skip-reviewer",
+            "--skip-references",
+            "--json",
+            str(tex),
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["findings"] == []
