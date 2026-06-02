@@ -317,7 +317,10 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
                     value=1,
                 )
             with gr.Accordion("LLM backend config", open=False):
-                gr.Markdown("Set `QALMSW_BASE_URL` and `QALMSW_MODEL` as Space secrets to enable [LLM] checkers.")
+                gr.Markdown(
+                "Set `QALMSW_BASE_URL` and `QALMSW_MODEL` as Space secrets"
+                " to enable [LLM] checkers."
+            )
                 llm_base_url = gr.Textbox(
                     label="Base URL",
                     placeholder="https://api.openai.com/v1",
@@ -352,8 +355,15 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
         inputs=[tex_file],
         outputs=[tex_source],
     )
+    def _read_bib_files(paths):
+        if not paths:
+            return ""
+        return "\n\n".join(
+            Path(p).read_text(encoding="utf-8", errors="replace") for p in paths
+        )
+
     bib_files.change(
-        lambda paths: "\n\n".join(Path(p).read_text(encoding="utf-8", errors="replace") for p in paths) if paths else "",
+        _read_bib_files,
         inputs=[bib_files],
         outputs=[bib_source],
     )
