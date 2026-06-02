@@ -330,6 +330,11 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
                     placeholder="Optional; leave blank to use Space secret",
                 )
             run = gr.Button("Run checks", variant="primary")
+            gr.Markdown(
+                "Upload a .tex file (or paste source) and optional .bib files, "
+                "then click **Run checks**. Always-on checks run automatically; "
+                "toggle optional checks above. Results appear below.",
+            )
 
     summary = gr.Markdown()
     findings_table = gr.DataFrame(
