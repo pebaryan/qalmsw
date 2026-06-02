@@ -279,14 +279,16 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
     with gr.Row():
         with gr.Column(scale=5, min_width=360):
             tex_file = gr.File(label="Main .tex file", file_types=[".tex"], type="filepath")
-            tex_source = gr.Code(label="LaTeX source", value=_SAMPLE, lines=18)
+            with gr.Accordion("LaTeX source", open=False):
+                tex_source = gr.Code(label="LaTeX source", value=_SAMPLE, lines=18)
             bib_files = gr.File(
                 label=".bib files",
                 file_types=[".bib"],
                 file_count="multiple",
                 type="filepath",
             )
-            bib_source = gr.Code(label="BibTeX source", lines=8)
+            with gr.Accordion("BibTeX source", open=False):
+                bib_source = gr.Code(label="BibTeX source", lines=8)
             project_files = gr.File(
                 label="Project files",
                 file_count="multiple",
