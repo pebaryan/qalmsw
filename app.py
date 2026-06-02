@@ -345,6 +345,17 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
     )
     json_output = gr.JSON(label="JSON")
 
+    tex_file.change(
+        lambda path: Path(path).read_text(encoding="utf-8", errors="replace") if path else _SAMPLE,
+        inputs=[tex_file],
+        outputs=[tex_source],
+    )
+    bib_files.change(
+        lambda paths: "\n\n".join(Path(p).read_text(encoding="utf-8", errors="replace") for p in paths) if paths else "",
+        inputs=[bib_files],
+        outputs=[bib_source],
+    )
+
     run.click(
         check_manuscript,
         inputs=[
