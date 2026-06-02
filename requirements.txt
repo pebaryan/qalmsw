@@ -1,2 +1,2 @@
 git+https://github.com/pebaryan/qalmsw.git
-huggingface-hub<0.27
+gradio[oauth]>=5.27.0
