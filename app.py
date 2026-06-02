@@ -332,7 +332,7 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
             run = gr.Button("Run checks", variant="primary")
 
     summary = gr.Markdown()
-    findings_table = gr.Dataframe(
+    findings_table = gr.DataFrame(
         headers=["Severity", "Checker", "File", "Line", "Message", "Suggestion"],
         datatype=["str", "str", "str", "number", "str", "str"],
         interactive=False,
