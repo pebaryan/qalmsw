@@ -15,6 +15,12 @@ Design:
 - arXiv API: https://export.arxiv.org/api/query?id_list=
 - DOI: HEAD https://doi.org/DOI (checks HTTP 200)
 - Failures are non-fatal (info findings); confirmed hallucinations are errors
+
+When LitKG (https://github.com/pebaryan/litkg) is installed, the checker can delegate to
+its reference backend instead (see ``litkg_backend``). LitKG also compares each entry's
+title, authors, and year with the registry record, finds entries without an identifier
+by title search, suggests the correct record, and counts papers in a LitKG library as
+verified.
 """
 
 from __future__ import annotations
@@ -25,6 +31,8 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 from qalmsw.bib import BibEntry
 from qalmsw.checkers.base import Finding, Severity
@@ -86,6 +94,39 @@ def _verify_doi(doi: str, timeout: float = 10.0) -> tuple[bool, str]:
 
 VerifyFn = Callable[[BibEntry], tuple[bool, str] | None]
 
+_LITKG_SEVERITY = {"error": Severity.error, "warning": Severity.warning, "note": Severity.info}
+_LITKG_BIB_SUFFIXES = frozenset({".bib", ".json"})
+# Nothing actionable: web/@misc entries and entries without a title are not looked up.
+_LITKG_SILENT = frozenset({"not-indexed", "no-title"})
+
+
+def litkg_backend(
+    store: str | Path | None = None,
+    mailto: str | None = None,
+    cache_dir: str | Path | None = ".litkg_cache",
+) -> Any | None:
+    """Return a LitKG reference backend, or ``None`` when LitKG is not installed."""
+    try:
+        from litkg.api import ReferenceBackend
+    except ImportError:
+        return None
+    return ReferenceBackend(online=True, store=store, mailto=mailto, cache_dir=cache_dir)
+
+
+def _format_candidate(record: Any) -> str:
+    authors = list(record.authors or [])
+    names = "; ".join(authors[:3]) + (" et al." if len(authors) > 3 else "")
+    parts = [f'"{record.title}"'] if record.title else []
+    if names:
+        parts.append(names)
+    if record.year:
+        parts.append(f"({record.year})")
+    if record.doi:
+        parts.append(f"doi:{record.doi}")
+    elif record.arxiv_id:
+        parts.append(f"arXiv:{record.arxiv_id}")
+    return " ".join(parts)
+
 
 class ReferenceChecker:
     """Verifies bibliography entries against external APIs.
@@ -99,18 +140,87 @@ class ReferenceChecker:
 
     name = "references"
 
-    def __init__(self, bib_entries: list[BibEntry], verify: VerifyFn | None = None) -> None:
+    def __init__(
+        self,
+        bib_entries: list[BibEntry],
+        verify: VerifyFn | None = None,
+        backend: Any | None = None,
+    ) -> None:
         self._bib_entries = bib_entries
         self._verify = verify or self._default_verify
+        self._backend = None if verify is not None else backend
         self._cache: dict[str, tuple[bool, str] | None] = {}
         self._last_arxiv_call = 0.0
 
     def check(self, doc: Document) -> list[Finding]:
+        if self._backend is not None:
+            return self._check_with_litkg()
         findings: list[Finding] = []
         for entry in self._bib_entries:
             result = self._check_entry(entry)
             if result is not None:
                 findings.append(result)
+        return findings
+
+    def _check_with_litkg(self) -> list[Finding]:
+        from litkg.api import make_entry
+
+        unique: dict[str, BibEntry] = {}
+        for entry in self._bib_entries:
+            unique.setdefault(entry.key, entry)
+
+        # LitKG's own parser keeps the fields it compares (year, full author list, @string
+        # macros); qalmsw's fields are the fallback for inline ibitem entries.
+        parsed: dict[Path, dict[str, Any]] = {}
+        infos = []
+        for entry in unique.values():
+            info = None
+            path = Path(entry.file) if entry.file else None
+            if path and path.suffix.lower() in _LITKG_BIB_SUFFIXES and path.is_file():
+                if path not in parsed:
+                    try:
+                        loaded = self._backend.load_bibliography(path)
+                    except (OSError, ValueError):
+                        loaded = []
+                    parsed[path] = {item.key: item for item in loaded if item.key}
+                info = parsed[path].get(entry.key)
+            if info is None:
+                info = make_entry(
+                    key=entry.key,
+                    title=entry.title,
+                    authors=entry.author,
+                    doi=entry.doi,
+                    eprint=entry.eprint,
+                    entry_type=entry.entry_type,
+                )
+            infos.append(info)
+
+        try:
+            verdicts = self._backend.verify(infos)
+        finally:
+            self._backend.close()
+
+        findings: list[Finding] = []
+        for entry, verdict in zip(unique.values(), verdicts, strict=True):
+            suggested = False
+            for item in verdict.findings:
+                if item.code in _LITKG_SILENT:
+                    continue
+                suggestion = None
+                if verdict.candidate is not None and not suggested and item.severity != "note":
+                    candidate = _format_candidate(verdict.candidate)
+                    suggestion = f"Possible correct reference: {candidate}"
+                    suggested = True
+                findings.append(
+                    Finding(
+                        checker=self.name,
+                        severity=_LITKG_SEVERITY.get(item.severity, Severity.info),
+                        file=str(entry.file),
+                        line=entry.line,
+                        message=f"Reference '{entry.key}' ({item.code}): {item.message}",
+                        suggestion=suggestion,
+                    )
+                )
         return findings
 
     def _check_entry(self, entry: BibEntry) -> Finding | None:

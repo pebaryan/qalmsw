@@ -21,6 +21,7 @@ from qalmsw.checkers import (
     MathChecker,
     ReferenceChecker,
     ReviewerChecker,
+    litkg_backend,
 )
 from qalmsw.document import Document
 from qalmsw.llm import LlamaCppClient
@@ -58,6 +59,24 @@ def check(
         "--skip-references",
         help="Skip network reference validation against arXiv and DOI resolvers.",
     ),
+    references_backend: str = typer.Option(
+        "auto",
+        "--references-backend",
+        help="Reference validation engine: 'litkg' (metadata comparison, title search, "
+        "library evidence; needs `pip install qalmsw[litkg]`), 'builtin' (DOI/arXiv "
+        "existence only), or 'auto' (litkg when installed).",
+    ),
+    library: Path | None = typer.Option(
+        None,
+        "--library",
+        help="LitKG library store (.ttl from `litkg index`); papers in it count as verified.",
+    ),
+    mailto: str | None = typer.Option(
+        None,
+        "--mailto",
+        envvar="QALMSW_MAILTO",
+        help="Contact email sent to Crossref/OpenAlex for their faster polite pool (litkg).",
+    ),
     enable_claims: bool = typer.Option(
         False,
         "--enable-claims",
@@ -92,6 +111,11 @@ def check(
 
     # Select retrieval backend for claims checker
     set_backend(retrieval)
+    reference_backend = (
+        None
+        if skip_references
+        else _reference_backend(references_backend, library, mailto, quiet=json_output)
+    )
 
     if len(resolved) > 1 and not json_output:
         console.print(f"[dim]{len(resolved)} file(s) to check[/]")
@@ -112,6 +136,7 @@ def check(
             skip_math,
             skip_reviewer,
             skip_references,
+            reference_backend,
             enable_claims,
             concurrency,
             base_url,
@@ -128,6 +153,31 @@ def check(
     raise typer.Exit(code=1 if any_errors else 0)
 
 
+def _reference_backend(
+    choice: str, library: Path | None, mailto: str | None, quiet: bool
+) -> object | None:
+    """Pick the reference validation engine; ``None`` means the built-in checks."""
+    choice = choice.lower()
+    if choice not in {"auto", "litkg", "builtin"}:
+        console.print(f"[red]error[/]: unknown --references-backend {choice!r}")
+        raise typer.Exit(code=2)
+    if choice == "builtin":
+        return None
+    if library is not None and not library.is_file():
+        console.print(f"[red]error[/]: LitKG library not found: {library}")
+        raise typer.Exit(code=2)
+    backend = litkg_backend(store=library, mailto=mailto)
+    if backend is None and (choice == "litkg" or library is not None):
+        console.print(
+            "[red]error[/]: LitKG is not installed; run `pip install qalmsw\\[litkg]` "
+            "or use --references-backend builtin"
+        )
+        raise typer.Exit(code=2)
+    if backend is not None and not quiet:
+        console.print("[dim]references: LitKG backend[/]")
+    return backend
+
+
 def _check_single(
     file: Path,
     bib: list[Path],
@@ -135,6 +185,7 @@ def _check_single(
     skip_math: bool,
     skip_reviewer: bool,
     skip_references: bool,
+    reference_backend: object | None,
     enable_claims: bool,
     concurrency: int,
     base_url: str | None,
@@ -174,7 +225,7 @@ def _check_single(
         CitationChecker(bib_entries),
     ]
     if bib_entries and not skip_references:
-        checkers.append(ReferenceChecker(bib_entries))
+        checkers.append(ReferenceChecker(bib_entries, backend=reference_backend))
     elif bib_entries and skip_references and not json_output:
         console.print("[dim]skipping references checker[/]")
     if not skip_grammar or not skip_math or not skip_reviewer or enable_claims:

@@ -40,6 +40,9 @@ dev = [
 space = [
     "gradio>=6.0,<7",
 ]
+litkg = [
+    "litkg @ git+https://github.com/pebaryan/litkg",
+]
 
 [project.scripts]
 qalmsw = "qalmsw.cli:app"
@@ -48,6 +51,9 @@ qalmsw = "qalmsw.cli:app"
 Homepage = "https://github.com/pebaryan/qalmsw"
 Repository = "https://github.com/pebaryan/qalmsw"
 Issues = "https://github.com/pebaryan/qalmsw/issues"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/qalmsw"]

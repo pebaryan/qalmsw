@@ -6,7 +6,7 @@ from qalmsw.checkers.figures import FigureTableChecker
 from qalmsw.checkers.grammar import GrammarChecker
 from qalmsw.checkers.images import ImageChecker
 from qalmsw.checkers.math import MathChecker
-from qalmsw.checkers.references import ReferenceChecker
+from qalmsw.checkers.references import ReferenceChecker, litkg_backend
 from qalmsw.checkers.reviewer import ReviewerChecker
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "ImageChecker",
     "MathChecker",
     "ReferenceChecker",
+    "litkg_backend",
     "ReviewerChecker",
     "Severity",
 ]

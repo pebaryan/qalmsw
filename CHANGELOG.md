@@ -4,6 +4,11 @@ All notable project changes should be recorded here before a release is tagged.
 
 ## Unreleased
 
+- The `references` checker can delegate to LitKG (`pip install qalmsw[litkg]`): title,
+  author, and year comparison against registry records, title search for entries without
+  an identifier, suggested corrections, and LitKG library papers as evidence. New options
+  `--references-backend`, `--library`, and `--mailto`; the built-in check remains the
+  fallback.
 - Added CI configuration for linting and tests on supported Python versions.
 - Added open-source project files: license, contributing guide, security policy,
   code of conduct, issue templates, and pull request template.
