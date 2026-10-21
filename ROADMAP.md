@@ -11,7 +11,10 @@ LLM-backed checks useful enough for private local review before authors submit.
 - Improve JSON output and add SARIF output so editors, GitHub Actions, and review
   tools can annotate exact manuscript lines.
 - Expand reference verification beyond arXiv and DOI checks with better fallbacks
-  for Semantic Scholar, Crossref, and OpenAlex.
+  for Semantic Scholar, Crossref, and OpenAlex. *Started:* the LitKG backend adds
+  metadata comparison and Crossref/OpenAlex title search; next, make it the default
+  once LitKG is on PyPI, and adopt LitKG's fabrication benchmark into the regression
+  corpus.
 - Build a small public regression corpus of synthetic LaTeX manuscripts that cover
   hallucinated references, placeholder content, missing figures, and unsupported
   claims.

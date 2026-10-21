@@ -41,7 +41,7 @@ Code of Conduct penalises:
 |---|---|
 | **LLM meta-comments** ("here is a 200-word summary", "would you like me to make any changes?") | `artifacts` checker - deterministic regex scan, no LLM needed |
 | **Placeholder data** ("fill in with the real numbers", "this table is illustrative") | Same `artifacts` checker |
-| **Hallucinated references** (bib entries for papers that don't exist) | `references` checker - verifies arXiv IDs and DOIs against live APIs |
+| **Hallucinated references** (bib entries for papers that don't exist, or that point at the wrong paper) | `references` checker - verifies arXiv IDs and DOIs against live APIs; with [LitKG](#reference-verification-with-litkg) it also compares titles, authors, and years and searches for entries without an identifier |
 | **Missing/placeholder captions** ("\caption{Insert caption here}") | `figures` checker - flags missing captions, placeholder text, orphan labels |
 | **LLM self-awareness artifacts** ("as an AI language model", "I cannot provide") | `artifacts` checker |
 | **LLM-generated LaTeX boilerplate** (\lipsum, \blindtext, TODO/FIXME) | `artifacts` checker |
@@ -69,6 +69,7 @@ qalmsw check --skip-grammar --skip-math --skip-reviewer --skip-references paper.
 qalmsw check --skip-math --skip-grammar --skip-reviewer paper.tex
 qalmsw check --skip-grammar path/to/paper.tex              # reviewer + citations + artifacts + references
 qalmsw check --skip-references paper.tex                   # avoid DOI/arXiv network validation
+qalmsw check --library .litkg_store.ttl paper.tex          # LitKG library counts as evidence (see below)
 qalmsw check -j 4 path/to/paper.tex                        # fan out 4 parallel LLM calls
 qalmsw check --bib refs.bib path/to/paper.tex              # override .bib auto-discovery
 qalmsw check --json paper.tex                              # parseable JSON output for CI
@@ -84,6 +85,7 @@ Environment variables:
 - `QALMSW_BASE_URL` - llama.cpp server URL (default `http://localhost:8080/v1`)
 - `QALMSW_MODEL` - model name (default `local-model`; llama.cpp usually ignores this)
 - `QALMSW_API_KEY` - optional API key for non-local OpenAI-compatible endpoints
+- `QALMSW_MAILTO` - contact email for Crossref/OpenAlex when the LitKG backend is used
 
 ## Web frontend
 
@@ -115,7 +117,7 @@ best for user-supplied per-run credentials.
 | `figures` | No | Instant | Checks captions, labels, refs, empty floats |
 | `images` | No | Instant | Verifies \includegraphics files exist on disk |
 | `citations` | No | Instant | `.bib` vs \cite cross-check: MISSING, UNUSED, DUPLICATE |
-| `references` | Network | Slow | Verifies arXiv IDs and DOIs resolve to real papers |
+| `references` | Network | Slow | Verifies arXiv IDs and DOIs resolve to real papers (and, with LitKG, that the metadata matches) |
 | `grammar` | LLM | Per-paragraph | Grammar, spelling, punctuation |
 | `math` | LLM | Per-paragraph | Formula notation and consistency |
 | `reviewer` | LLM | Per-section | Motivation, clarity, argumentation, methodology |
@@ -124,6 +126,29 @@ best for user-supplied per-run credentials.
 Exit code is `1` only when an `error`-severity finding is present (missing citation,
 LLM artifact, hallucinated reference), so unused-bib-entry `info`s or duplicate-key
 `warning`s don't fail CI.
+
+### Reference verification with LitKG
+
+[LitKG](https://github.com/pebaryan/litkg) turns your reading list into a local literature
+knowledge graph and acts as qalmsw's reference backend. With it installed, the `references`
+checker:
+
+- compares each entry's title, authors, and year with the Crossref/DataCite/arXiv record, so a
+  real DOI pasted onto the wrong paper or a real title with invented authors is an error;
+- finds entries without a DOI or arXiv ID by Crossref/OpenAlex title search;
+- suggests the correct record, and notes DOIs you could add;
+- counts papers in your LitKG library as verified, even when no registry indexes them.
+
+```bash
+pip install -e ".[litkg]"
+qalmsw check paper.tex                                     # uses LitKG automatically when installed
+qalmsw check --library ~/papers/.litkg_store.ttl paper.tex # papers from `litkg index` count as verified
+qalmsw check --mailto you@example.org paper.tex            # Crossref/OpenAlex polite pool (faster)
+qalmsw check --references-backend builtin paper.tex        # existence-only DOI/arXiv checks
+```
+
+Registry responses are cached in `.litkg_cache/`. Findings carry LitKG's code, e.g.
+`Reference 'devlin2019bert' (author-mismatch): ...`.
 
 ### Retrieval backends
 

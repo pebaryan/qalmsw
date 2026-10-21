@@ -23,6 +23,7 @@ from qalmsw.checkers import (
     MathChecker,
     ReferenceChecker,
     ReviewerChecker,
+    litkg_backend,
 )
 from qalmsw.document import Document
 from qalmsw.llm import LlamaCppClient
@@ -199,7 +200,7 @@ def _build_checkers(
         CitationChecker(bib_entries),
     ]
     if verify_references and bib_entries:
-        checkers.append(ReferenceChecker(bib_entries))
+        checkers.append(ReferenceChecker(bib_entries, backend=litkg_backend()))
 
     wants_llm = run_grammar or run_math or run_reviewer or run_claims
     base_url = _clean(llm_base_url) or os.environ.get("QALMSW_BASE_URL")
