@@ -12,6 +12,7 @@ import gradio as gr
 
 from qalmsw.bib import BibEntry, extract_inline_bibitems, parse_bib_file
 from qalmsw.checkers import (
+    AmbiguityChecker,
     ArtifactChecker,
     Checker,
     CitationChecker,
@@ -69,6 +70,7 @@ def check_manuscript(
     run_grammar: bool,
     run_math: bool,
     run_reviewer: bool,
+    run_ambiguity: bool,
     run_claims: bool,
     retrieval_backend: str,
     concurrency: int,
@@ -108,6 +110,7 @@ def check_manuscript(
             run_grammar=run_grammar,
             run_math=run_math,
             run_reviewer=run_reviewer,
+            run_ambiguity=run_ambiguity,
             run_claims=run_claims,
             concurrency=concurrency,
             llm_base_url=llm_base_url,
@@ -186,6 +189,7 @@ def _build_checkers(
     run_grammar: bool,
     run_math: bool,
     run_reviewer: bool,
+    run_ambiguity: bool,
     run_claims: bool,
     concurrency: int,
     llm_base_url: str | None,
@@ -202,7 +206,7 @@ def _build_checkers(
     if verify_references and bib_entries:
         checkers.append(ReferenceChecker(bib_entries, backend=litkg_backend()))
 
-    wants_llm = run_grammar or run_math or run_reviewer or run_claims
+    wants_llm = run_grammar or run_math or run_reviewer or run_ambiguity or run_claims
     base_url = _clean(llm_base_url) or os.environ.get("QALMSW_BASE_URL")
     model = _clean(llm_model) or os.environ.get("QALMSW_MODEL") or "local-model"
     api_key = _clean(llm_api_key) or os.environ.get("QALMSW_API_KEY")
@@ -220,6 +224,8 @@ def _build_checkers(
             checkers.append(MathChecker(llm, concurrency=concurrency))
         if run_reviewer:
             checkers.append(ReviewerChecker(llm, concurrency=concurrency))
+        if run_ambiguity:
+            checkers.append(AmbiguityChecker(llm, concurrency=concurrency))
         if run_claims:
             checkers.append(ClaimsChecker(llm, bib_entries))
     return checkers
@@ -304,6 +310,7 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
                 run_grammar = gr.Checkbox(label="Grammar [LLM]", value=False)
                 run_math = gr.Checkbox(label="Math consistency [LLM]", value=False)
                 run_reviewer = gr.Checkbox(label="Reviewer critique [LLM]", value=False)
+                run_ambiguity = gr.Checkbox(label="Ambiguous sentences [LLM]", value=False)
                 run_claims = gr.Checkbox(label="Claim support [LLM]", value=False)
                 retrieval_backend = gr.Dropdown(
                     label="Retrieval backend",
@@ -381,6 +388,7 @@ with gr.Blocks(title="qalmsw", theme=_THEME, css=_CSS) as demo:
             run_grammar,
             run_math,
             run_reviewer,
+            run_ambiguity,
             run_claims,
             retrieval_backend,
             concurrency,

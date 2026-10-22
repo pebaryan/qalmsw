@@ -4,6 +4,11 @@ All notable project changes should be recorded here before a release is tagged.
 
 ## Unreleased
 
+- Added the opt-in `ambiguity` checker (`--enable-ambiguity`, and a checkbox in the
+  web app): it flags sentences a reader could take more than one way and shows the
+  competing readings and the question the author must answer. A deterministic screen
+  limits LLM calls, and a verification pass filters false alarms. Includes a paired
+  vague/precise benchmark and `research/ambiguity_eval.py`.
 - The `references` checker can delegate to LitKG (`pip install qalmsw[litkg]`): title,
   author, and year comparison against registry records, title search for entries without
   an identifier, suggested corrections, and LitKG library papers as evidence. New options

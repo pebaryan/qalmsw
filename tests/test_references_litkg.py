@@ -98,6 +98,66 @@ def test_litkg_backend_handles_inline_bibitems() -> None:
     assert all(f.severity != Severity.error for f in findings)
 
 
+class DownRegistry:
+    """Every registry is unreachable: either the fetch raises or it returns HTTP 503."""
+
+    def __init__(self, mode: str) -> None:
+        self.mode = mode
+
+    def get(self, url: str, accept: str = "application/json") -> Response:
+        if self.mode == "raise":
+            raise OSError(f"network unreachable: {url}")
+        return Response(503, "")
+
+
+@pytest.mark.parametrize("mode", ["raise", "status"])
+def test_litkg_registry_outage_falls_back_to_arxiv_doi_check(
+    mode: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qalmsw.checkers import references
+
+    calls: list[tuple[str, str]] = []
+
+    def fake_doi(doi: str) -> tuple[bool, str]:
+        calls.append(("doi", doi))
+        return True, f"https://example.org/{doi}"
+
+    def fake_arxiv(arxiv_id: str) -> tuple[bool, str]:
+        calls.append(("arxiv", arxiv_id))
+        return False, "No entry returned by arXiv API"
+
+    monkeypatch.setattr(references, "_verify_doi", fake_doi)
+    monkeypatch.setattr(references, "_verify_arxiv", fake_arxiv)
+    monkeypatch.setattr(references, "_ARXIV_DELAY", 0.0)
+
+    entries = [
+        BibEntry(
+            key="withdoi", entry_type="article", file=Path("refs.bib"), line=1,
+            title="Deep Residual Learning for Image Recognition", author="He, Kaiming",
+            doi="10.1109/CVPR.2016.90",
+        ),
+        BibEntry(
+            key="witharxiv", entry_type="article", file=Path("refs.bib"), line=8,
+            title="Attention Is All You Need", author="Vaswani, Ashish", eprint="1706.03762",
+        ),
+        BibEntry(
+            key="titleonly", entry_type="article", file=Path("refs.bib"), line=15,
+            title="Quantum Gradient Descent for Alignment", author="Doe, Jane",
+        ),
+    ]
+    backend = api.ReferenceBackend(fetcher=DownRegistry(mode), workers=1)
+
+    findings = ReferenceChecker(entries, backend=backend).check(_doc())
+
+    by_key = {e.key: [f for f in findings if f"'{e.key}'" in f.message] for e in entries}
+    assert all(by_key[key] for key in by_key), by_key
+    assert calls == [("doi", "10.1109/CVPR.2016.90"), ("arxiv", "1706.03762")]
+    [arxiv_fallback] = [f for f in by_key["witharxiv"] if "arXiv returned no result" in f.message]
+    assert arxiv_fallback.severity == Severity.error
+    assert arxiv_fallback.line == 8
+    assert not any("doi.org returned no result" in f.message for f in by_key["withdoi"])
+
+
 def test_explicit_verify_function_overrides_backend() -> None:
     entry = BibEntry(key="x", entry_type="article", file=Path("refs.bib"), line=1, doi="10.1/x")
     checker = ReferenceChecker([entry], verify=lambda e: (True, "ok"), backend=_backend())

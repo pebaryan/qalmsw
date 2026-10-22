@@ -25,6 +25,7 @@ verified.
 
 from __future__ import annotations
 
+import contextlib
 import re
 import time
 import urllib.error
@@ -98,6 +99,7 @@ _LITKG_SEVERITY = {"error": Severity.error, "warning": Severity.warning, "note":
 _LITKG_BIB_SUFFIXES = frozenset({".bib", ".json"})
 # Nothing actionable: web/@misc entries and entries without a title are not looked up.
 _LITKG_SILENT = frozenset({"not-indexed", "no-title"})
+_LITKG_LOOKUP_FAILED = "lookup-failed"
 
 
 def litkg_backend(
@@ -195,13 +197,22 @@ class ReferenceChecker:
                 )
             infos.append(info)
 
+        # A registry outage must not abort the run: fall back to the arXiv/DOI check for
+        # entries LitKG could not look up (all of them if the backend itself raised).
         try:
             verdicts = self._backend.verify(infos)
+        except Exception as exc:  # noqa: BLE001 - any backend failure degrades to fallback
+            return self._fallback_findings(list(unique.values()), exc)
         finally:
-            self._backend.close()
+            with contextlib.suppress(OSError):
+                self._backend.close()
 
         findings: list[Finding] = []
         for entry, verdict in zip(unique.values(), verdicts, strict=True):
+            if any(item.code == _LITKG_LOOKUP_FAILED for item in verdict.findings):
+                fallback = self._check_entry(entry)
+                if fallback is not None:
+                    findings.append(fallback)
             suggested = False
             for item in verdict.findings:
                 if item.code in _LITKG_SILENT:
@@ -221,6 +232,26 @@ class ReferenceChecker:
                         suggestion=suggestion,
                     )
                 )
+        return findings
+
+    def _fallback_findings(self, entries: list[BibEntry], exc: Exception) -> list[Finding]:
+        findings: list[Finding] = []
+        for entry in entries:
+            findings.append(
+                Finding(
+                    checker=self.name,
+                    severity=Severity.info,
+                    file=str(entry.file),
+                    line=entry.line,
+                    message=(
+                        f"Reference '{entry.key}' could not be checked with LitKG ({exc}); "
+                        f"used the arXiv/DOI check instead."
+                    ),
+                )
+            )
+            fallback = self._check_entry(entry)
+            if fallback is not None:
+                findings.append(fallback)
         return findings
 
     def _check_entry(self, entry: BibEntry) -> Finding | None:
