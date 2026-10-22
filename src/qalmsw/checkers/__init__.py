@@ -1,3 +1,4 @@
+from qalmsw.checkers.ambiguity import AmbiguityChecker
 from qalmsw.checkers.artifacts import ArtifactChecker
 from qalmsw.checkers.base import Checker, Finding, Severity
 from qalmsw.checkers.citations import CitationChecker
@@ -10,6 +11,7 @@ from qalmsw.checkers.references import ReferenceChecker, litkg_backend
 from qalmsw.checkers.reviewer import ReviewerChecker
 
 __all__ = [
+    "AmbiguityChecker",
     "ArtifactChecker",
     "Checker",
     "CitationChecker",

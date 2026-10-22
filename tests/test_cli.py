@@ -158,3 +158,40 @@ def test_skip_references_allows_fast_deterministic_json_run(tmp_path: Path):
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["findings"] == []
+
+
+def test_enable_ambiguity_reports_competing_readings(tmp_path: Path, monkeypatch):
+    """--enable-ambiguity runs the ambiguity checker even when the other LLM checks are off."""
+
+    class FakeLLM:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def complete_json(self, system: str, user: str) -> dict:
+            if "skeptical" in system:
+                return {"plausible": True, "material": True}
+            return {
+                "findings": [
+                    {
+                        "id": 1,
+                        "phrase": "robust",
+                        "readings": ["robust to noise", "robust to distribution shift"],
+                        "question": "Robust to what?",
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("qalmsw.cli.LlamaCppClient", FakeLLM)
+    tex = tmp_path / "paper.tex"
+    tex.write_text(r"\documentclass{article}\begin{document}The model is robust.\end{document}")
+
+    args = ["check", "--skip-grammar", "--skip-math", "--skip-reviewer", "--json", str(tex)]
+    quiet = runner.invoke(app, args)
+    assert json.loads(quiet.stdout)["findings"] == []
+
+    result = runner.invoke(app, [*args[:-1], "--enable-ambiguity", str(tex)])
+    assert result.exit_code == 0  # ambiguity findings are warnings
+    [finding] = json.loads(result.stdout)["findings"]
+    assert finding["checker"] == "ambiguity"
+    assert finding["severity"] == "warning"
+    assert "robust to distribution shift" in finding["message"]

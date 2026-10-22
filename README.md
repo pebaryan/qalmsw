@@ -48,6 +48,7 @@ Code of Conduct penalises:
 | **Unreferenced figures/tables** | `figures` checker - warns on labels never \ref'd |
 | **Missing image files** (\includegraphics pointing to non-existent files) | `images` checker - verifies referenced images exist on disk |
 | **Grammar & style issues** | `grammar` checker - per-paragraph LLM pass |
+| **Ambiguous sentences** (consistent with what you meant, and with readings you didn't) | `ambiguity` checker *(opt-in)* - shows the competing readings and the question to answer |
 | **Math formula consistency issues** | `math` checker - per-paragraph LLM pass |
 | **Missing citations** | `citations` checker - cross-references \cite vs .bib |
 | **Substantive reviewer concerns** | `reviewer` checker - per-section LLM critique |
@@ -78,6 +79,7 @@ qalmsw check "src/**/*.tex"                                # glob expansion
 
 qalmsw scholar "Attention Is All You Need"                 # Semantic Scholar lookup (default, free API)
 qalmsw check --enable-claims --retrieval google-scholar paper.tex  # claims check via Google Scholar
+qalmsw check --enable-ambiguity paper.tex                  # flag sentences with competing readings
 ```
 
 Environment variables:
@@ -121,6 +123,7 @@ best for user-supplied per-run credentials.
 | `grammar` | LLM | Per-paragraph | Grammar, spelling, punctuation |
 | `math` | LLM | Per-paragraph | Formula notation and consistency |
 | `reviewer` | LLM | Per-section | Motivation, clarity, argumentation, methodology |
+| `ambiguity` *(opt-in)* | LLM | Per-paragraph | Sentences a reader could take more than one way, with the competing readings |
 | `claims` *(opt-in)* | LLM + Network | Very slow | For each \cite-backed claim, checks the abstract supports it |
 
 Exit code is `1` only when an `error`-severity finding is present (missing citation,
@@ -149,6 +152,34 @@ qalmsw check --references-backend builtin paper.tex        # existence-only DOI/
 
 Registry responses are cached in `.litkg_cache/`. Findings carry LitKG's code, e.g.
 `Reference 'devlin2019bert' (author-mismatch): ...`.
+
+### Ambiguity
+
+AI-drafted prose is usually consistent with what you meant, and also with readings you
+didn't mean. You won't catch that by proofreading: you check that the text says what you
+intended (it does), and the curse of knowledge hides the other readings. So the `ambiguity`
+checker never asks the LLM "is this vague?". It makes the LLM read like a stranger and
+produce the competing readings, and reports a sentence only when it can show at least two:
+
+```text
+warning paper.tex:42 ambiguity "robust" can be read more than one way: (a) accuracy holds
+    under input noise; (b) accuracy holds under distribution shift; (c) results are stable
+    across random seeds
+    suggest: Robust to what, measured how? Rewrite so only the intended reading fits.
+```
+
+1. **Screen** (free): keeps sentences with vagueness cues: magnitudes without numbers
+   ("significantly"), comparisons without a baseline ("outperforms"), unscoped claims
+   ("robust", "generalizes"), vague relations ("associated with", "plays a key role"), and
+   "This/It ..." with no noun.
+2. **Read as a stranger**: one LLM call per paragraph that has candidates.
+3. **Verify**: a separate, skeptical call per proposed finding confirms that each reading
+   is plausible in context and that they lead to different conclusions. This is what keeps
+   precise hedging ("in our experiments") and terms defined nearby from being flagged.
+
+Findings are warnings, so they never fail CI. Measure it against your model with
+`python -m research.ambiguity_eval`, which scores 20 hand-written pairs of the same claim,
+vague and precise (`tests/fixtures/ambiguity_pairs.json`).
 
 ### Retrieval backends
 

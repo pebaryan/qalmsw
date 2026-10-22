@@ -1,0 +1,125 @@
+{
+  "description": "Hand-written pairs of the same claim: a vague version a reader could take more than one way, and a precise rewrite that pins one reading down. Used to measure the ambiguity checker: it should flag `vague` and leave `precise` alone. `readings` documents what makes the vague version ambiguous.",
+  "pairs": [
+    {
+      "id": "significant-improvement",
+      "vague": "Our method significantly improves accuracy over prior work.",
+      "precise": "Our method raises top-1 accuracy on ImageNet from 76.1% to 78.3% over ResNet-50 (paired t-test, p < 0.01).",
+      "readings": ["statistically significant", "large in magnitude"]
+    },
+    {
+      "id": "robust-to-what",
+      "vague": "The model is robust and generalizes well.",
+      "precise": "Accuracy drops by at most 2 points under the 15 corruption types of ImageNet-C at severity 3.",
+      "readings": ["robust to input noise", "robust to distribution shift", "stable across random seeds"]
+    },
+    {
+      "id": "this-referent",
+      "vague": "We normalize the features and remove outliers before training. This improves stability.",
+      "precise": "We normalize the features and remove outliers before training. Removing outliers alone reduces the variance of the final loss across 5 seeds by half.",
+      "readings": ["normalization improves stability", "outlier removal improves stability", "both together"]
+    },
+    {
+      "id": "several-datasets",
+      "vague": "We evaluate on several standard benchmarks.",
+      "precise": "We evaluate on GLUE, SuperGLUE, and SQuAD 2.0.",
+      "readings": ["a broad suite", "a hand-picked few"]
+    },
+    {
+      "id": "efficient",
+      "vague": "The proposed algorithm is efficient.",
+      "precise": "The proposed algorithm runs in O(n log n) time and processes 1M records in 3 seconds on one CPU core.",
+      "readings": ["asymptotically efficient", "fast in wall-clock time", "memory efficient", "sample efficient"]
+    },
+    {
+      "id": "associated-with",
+      "vague": "Sleep duration is associated with exam performance.",
+      "precise": "Students who slept more than 7 hours scored 6 points higher on average (Pearson r = 0.31); we make no causal claim.",
+      "readings": ["correlation", "causal effect"]
+    },
+    {
+      "id": "outperforms-baselines",
+      "vague": "Our approach outperforms the baselines.",
+      "precise": "Our approach achieves a higher F1 than each of the three baselines in Table 2 on all five datasets.",
+      "readings": ["on every metric and dataset", "on average", "on the headline metric only"]
+    },
+    {
+      "id": "plays-key-role",
+      "vague": "Attention plays a key role in the model's success.",
+      "precise": "Removing the attention layers reduces BLEU from 27.3 to 19.8, the largest drop of any ablation in Table 4.",
+      "readings": ["it is necessary", "it contributes the most", "it is one of several factors"]
+    },
+    {
+      "id": "most-users",
+      "vague": "Most participants preferred the new interface.",
+      "precise": "Of the 40 participants, 31 preferred the new interface in the exit survey.",
+      "readings": ["a slight majority", "nearly all"]
+    },
+    {
+      "id": "lower-error",
+      "vague": "The second estimator has lower error.",
+      "precise": "The second estimator has lower mean squared error than the first on all 1,000 simulated datasets.",
+      "readings": ["lower bias", "lower variance", "lower MSE", "lower worst-case error"]
+    },
+    {
+      "id": "real-world",
+      "vague": "The system works in real-world settings.",
+      "precise": "We deployed the system in two hospitals for six months, where it triaged 12,400 radiology reports.",
+      "readings": ["tested on real data offline", "deployed with real users"]
+    },
+    {
+      "id": "it-referent",
+      "vague": "The encoder feeds the decoder through a bottleneck layer. It can be pruned without loss.",
+      "precise": "The encoder feeds the decoder through a bottleneck layer. The bottleneck layer can be pruned to half its width without loss in validation accuracy.",
+      "readings": ["the encoder can be pruned", "the decoder can be pruned", "the bottleneck can be pruned"]
+    },
+    {
+      "id": "state-of-the-art",
+      "vague": "The method achieves state-of-the-art results.",
+      "precise": "The method achieves the best published accuracy on the CIFAR-10 test set among models under 10M parameters, as of March 2026.",
+      "readings": ["best overall", "best in a restricted class", "competitive with the best"]
+    },
+    {
+      "id": "leverages",
+      "vague": "We leverage pretrained embeddings.",
+      "precise": "We initialize the input layer with frozen GloVe 300-d embeddings.",
+      "readings": ["used as frozen features", "used as initialization and fine-tuned", "used for distillation"]
+    },
+    {
+      "id": "slightly-worse",
+      "vague": "Performance is slightly worse on long documents.",
+      "precise": "On documents longer than 4,000 tokens, accuracy is 1.2 points lower than on shorter documents.",
+      "readings": ["within noise", "a small but real drop"]
+    },
+    {
+      "id": "handles-missing",
+      "vague": "The pipeline handles missing data.",
+      "precise": "The pipeline imputes missing numeric values with the column median and drops rows with a missing label.",
+      "readings": ["imputes it", "drops it", "models it explicitly"]
+    },
+    {
+      "id": "faster-training",
+      "vague": "Training is faster with the new optimizer.",
+      "precise": "With the new optimizer, training reaches 90% validation accuracy in 12 epochs instead of 20, at the same cost per epoch.",
+      "readings": ["fewer epochs to converge", "less time per epoch", "less total wall-clock time"]
+    },
+    {
+      "id": "interpretable",
+      "vague": "The resulting model is interpretable.",
+      "precise": "The resulting model is a decision tree of depth 4, so each prediction can be traced to at most four feature thresholds.",
+      "readings": ["inherently interpretable structure", "explained post hoc", "understandable by domain experts"]
+    },
+    {
+      "id": "impact-of-noise",
+      "vague": "Label noise affects the classifier.",
+      "precise": "With 20% of labels flipped uniformly at random, the classifier's test accuracy falls from 91% to 84%.",
+      "readings": ["lowers accuracy", "changes calibration", "changes which features it uses"]
+    },
+    {
+      "id": "these-results",
+      "vague": "We also observe gains on the held-out set and on the ablations. These results suggest the gains are not due to tuning.",
+      "precise": "We also observe gains on the held-out set and on the ablations. Because the held-out set was never used for tuning, the held-out gains suggest the improvements are not due to tuning.",
+      "readings": ["the held-out gains support the claim", "the ablation gains support the claim", "both do"]
+    }
+  ]
+}

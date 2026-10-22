@@ -10,6 +10,7 @@ from rich.console import Console
 from qalmsw import __version__
 from qalmsw.bib import BibEntry, extract_inline_bibitems, parse_bib_file
 from qalmsw.checkers import (
+    AmbiguityChecker,
     ArtifactChecker,
     Checker,
     CitationChecker,
@@ -54,6 +55,12 @@ def check(
     skip_grammar: bool = typer.Option(False, "--skip-grammar", help="Skip LLM grammar checker"),
     skip_math: bool = typer.Option(False, "--skip-math", help="Skip LLM math checker"),
     skip_reviewer: bool = typer.Option(False, "--skip-reviewer", help="Skip LLM reviewer checker"),
+    enable_ambiguity: bool = typer.Option(
+        False,
+        "--enable-ambiguity",
+        help="Enable the LLM ambiguity checker: sentences a reader could take more than one "
+        "way, with the competing readings.",
+    ),
     skip_references: bool = typer.Option(
         False,
         "--skip-references",
@@ -135,6 +142,7 @@ def check(
             skip_grammar,
             skip_math,
             skip_reviewer,
+            enable_ambiguity,
             skip_references,
             reference_backend,
             enable_claims,
@@ -184,6 +192,7 @@ def _check_single(
     skip_grammar: bool,
     skip_math: bool,
     skip_reviewer: bool,
+    enable_ambiguity: bool,
     skip_references: bool,
     reference_backend: object | None,
     enable_claims: bool,
@@ -228,10 +237,13 @@ def _check_single(
         checkers.append(ReferenceChecker(bib_entries, backend=reference_backend))
     elif bib_entries and skip_references and not json_output:
         console.print("[dim]skipping references checker[/]")
-    if not skip_grammar or not skip_math or not skip_reviewer or enable_claims:
+    wants_llm = not (skip_grammar and skip_math and skip_reviewer)
+    if wants_llm or enable_ambiguity or enable_claims:
         llm = LlamaCppClient(base_url=base_url, model=model)
         if not skip_grammar:
             checkers.append(GrammarChecker(llm, concurrency=concurrency))
+        if enable_ambiguity:
+            checkers.append(AmbiguityChecker(llm, concurrency=concurrency))
         if not skip_math:
             checkers.append(MathChecker(llm, concurrency=concurrency))
         if not skip_reviewer:
